@@ -1,50 +1,17 @@
 on:
-  repository_dispatch:
-    types: [deploy-event]
+  workflow_run:
+    workflows: [develop]
+    types: [completed]
+    branches: [develop]
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - name: Get Params
-        env:
-          DEPLOY_DIR: ${{ github.event.client_payload.dir }}
-          BRANCH: ${{github.event.client_payload.branch}}
-        run: |
-          echo "$DEPLOY_DIR"
-          echo "$BRANCH"
-          echo "hello world"
-      - name: Git Fetch
-        uses: actions/checkout@v4.2.2
+      # 下载构建产物
+      - uses: actions/download-artifact@v4
         with:
-          persist-credentials: false
-
-      - name: Install
-        run: npm i
-
-      - name: Build
-        run: npm run build
-
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.SERVER_KEY }}
-
-      - name: Deploy
-        env:
-          DEPLOY_USER: ${{ secrets.SERVER_USER_NAME }}
-          DEPLOY_HOST: ${{ secrets.SERVER_HOST }}
-        run: |
-          # 首先添加服务器到已知主机
-          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
-
-          # 生成发布目录名
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          CODE_DIR="${DEPLOY_DIR}/${TIMESTAMP}"
-
-          # 创建发布目录
-          ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p ${CODE_DIR}"
-          # 复制构建产物
-          scp -r dist/* $DEPLOY_USER@$DEPLOY_HOST:${CODE_DIR}/
-          # 修改软链接
-          ssh $DEPLOY_USER@$DEPLOY_HOST "ln -sfn ${CODE_DIR} ${DEPLOY_DIR}/current"
+          name: dist
+          path: dist/
+      # 部署步骤...

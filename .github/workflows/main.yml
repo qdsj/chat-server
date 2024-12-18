@@ -2,24 +2,19 @@ on:
   push:
     branches: [main]
 jobs:
-  build:
+  pre-deploy:
     runs-on: ubuntu-latest
-    environment: production
     steps:
-      - name: Set deploy directory
-        uses: actions/github-script@v7.0.1
-        env:
-          RELEASE_BRANCH: 'refs/heads/main'
-          RELEASE_DIR: '/www/wwwroot/chat-server/release'
-        with:
-          github-token: ${{ secrets.REPO_TOKEN }}
-          script: |
-            await github.rest.repos.createDispatchEvent({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              event_type: 'deploy-event',
-              client_payload: {
-                dir: process.env.RELEASE_DIR,
-                branch:process.env.RELEASE_BRANCH
-              }
-            })
+      - name: Special production tasks
+        run: echo "Running production-specific tasks"
+
+  deploy:
+    needs: pre-deploy
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: production
+      deploy_dir: /www/wwwroot/chat-server/release
+    secrets:
+      SERVER_KEY: ${{ secrets.SERVER_KEY }}
+      SERVER_USER_NAME: ${{ secrets.SERVER_USER_NAME }}
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
