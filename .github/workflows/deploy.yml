@@ -8,10 +8,10 @@ jobs:
     steps:
       - name: Get Params
         env:
-          DIR: ${{ github.event.client_payload.dir }}
-          BRNACH: ${{github.event.client_payload.branch}}
+          DEPLOY_DIR: ${{ github.event.client_payload.dir }}
+          BRANCH: ${{github.event.client_payload.branch}}
         run: |
-          echo "$DIR"
+          echo "$DEPLOY_DIR"
           echo "$BRANCH"
       - name: Git Fetch
         uses: actions/checkout@v4.2.2
