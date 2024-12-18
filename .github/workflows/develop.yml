@@ -1,0 +1,24 @@
+on:
+  push:
+    branches: [develop]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - name: Set deploy directory
+        uses: actions/github-script@v6
+        env:
+          RELEASE_BRANCH: 'refs/heads/develop'
+          RELEASE_DIR: '/www/wwwroot/chat-server/develop'
+        with:
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'deploy-event',
+              client_payload: {
+                dir: process.env.RELEASE_DIR,
+                branch:process.env.RELEASE_BRANCH
+              }
+            })

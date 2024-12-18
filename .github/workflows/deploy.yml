@@ -1,0 +1,25 @@
+on:
+  repository_dispatch:
+    types: [deploy-event]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Params
+        env:
+          DIR: ${{ github.event.client_payload.dir }}
+          BRNACH: ${{github.event.client_payload.branch}}
+        run: |
+          echo "$DIR"
+          echo "BRANCH"
+      # - name: Git Fetch
+      #   uses: actions/checkout@v4.2.2
+      #   with:
+      #     persist-credentials: false
+
+      # - name: Install
+      #   run: npm i
+
+      # - name: Build
+      #   run: npm run build
