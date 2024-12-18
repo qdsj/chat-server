@@ -6,10 +6,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: development
     steps:
+      - name: Wait for GitHub to process the commit
+        run: sleep 10 # 等待 GitHub 处理新的提交
+
       - name: Checkout Code
         uses: actions/checkout@v4.2.2
         with:
           persist-credentials: false
+          ref: develop # 确保检出最新的 develop 分支
 
       - name: Set deploy directory
         uses: actions/github-script@v7.0.1
@@ -25,6 +29,6 @@ jobs:
               event_type: 'deploy-event',
               client_payload: {
                 dir: process.env.RELEASE_DIR,
-                branch:process.env.RELEASE_BRANCH
+                branch: process.env.RELEASE_BRANCH
               }
             })
