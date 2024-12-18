@@ -6,6 +6,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: development
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
+
       - name: Set deploy directory
         uses: actions/github-script@v7.0.1
         env:
