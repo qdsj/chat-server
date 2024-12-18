@@ -12,6 +12,7 @@ jobs:
           RELEASE_BRANCH: 'refs/heads/main'
           RELEASE_DIR: '/www/wwwroot/chat-server/release'
         with:
+          github-token: ${{ secrets.REPO_TOKEN }}
           script: |
             await github.rest.repos.createDispatchEvent({
               owner: context.repo.owner,

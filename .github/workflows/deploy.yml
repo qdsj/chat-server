@@ -12,14 +12,39 @@ jobs:
           BRNACH: ${{github.event.client_payload.branch}}
         run: |
           echo "$DIR"
-          echo "BRANCH"
-      # - name: Git Fetch
-      #   uses: actions/checkout@v4.2.2
-      #   with:
-      #     persist-credentials: false
+          echo "$BRANCH"
+      - name: Git Fetch
+        uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
 
-      # - name: Install
-      #   run: npm i
+      - name: Install
+        run: npm i
 
-      # - name: Build
-      #   run: npm run build
+      - name: Build
+        run: npm run build
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_KEY }}
+
+      - name: Deploy
+        env:
+          # DEPLOY_PATH: "/www/wwwroot/todo-list" # 部署路径
+          DEPLOY_USER: ${{ secrets.SERVER_USER_NAME }}
+          DEPLOY_HOST: ${{ secrets.SERVER_HOST }}
+        run: |
+          # 首先添加服务器到已知主机
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+
+          # 生成发布目录名
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          CODE_DIR="${DEPLOY_DIR}/${TIMESTAMP}"
+
+          # 创建发布目录
+          ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p ${CODE_DIR}"
+          # 复制构建产物
+          scp -r dist/* $DEPLOY_USER@$DEPLOY_HOST:${CODE_DIR}/
+          # 修改软链接
+          ssh $DEPLOY_USER@$DEPLOY_HOST "ln -sfn ${CODE_DIR} ${DEPLOY_DIR}/current"
