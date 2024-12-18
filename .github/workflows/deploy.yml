@@ -31,7 +31,6 @@ jobs:
 
       - name: Deploy
         env:
-          # DEPLOY_PATH: "/www/wwwroot/todo-list" # 部署路径
           DEPLOY_USER: ${{ secrets.SERVER_USER_NAME }}
           DEPLOY_HOST: ${{ secrets.SERVER_HOST }}
         run: |
