@@ -1,0 +1,47 @@
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      deploy_dir:
+        required: true
+        type: string
+    secrets:
+      SERVER_KEY:
+        required: true
+      SERVER_USER_NAME:
+        required: true
+      SERVER_HOST:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
+
+      - name: Install & Build
+        run: |
+          npm i
+          npm run build
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_KEY }}
+
+      - name: Deploy
+        env:
+          DEPLOY_USER: ${{ secrets.SERVER_USER_NAME }}
+          DEPLOY_HOST: ${{ secrets.SERVER_HOST }}
+          DEPLOY_DIR: ${{ inputs.deploy_dir }}
+        run: |
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          CODE_DIR="${DEPLOY_DIR}/${TIMESTAMP}"
+          ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p ${CODE_DIR}"
+          scp -r dist/* $DEPLOY_USER@$DEPLOY_HOST:${CODE_DIR}/
+          ssh $DEPLOY_USER@$DEPLOY_HOST "ln -sfn ${CODE_DIR} ${DEPLOY_DIR}/current"
