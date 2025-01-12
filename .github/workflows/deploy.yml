@@ -17,11 +17,11 @@ jobs:
           echo ${{ github.ref }}
           environment=${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
           if [ $environment == 'prod' ]; then
-            port='3101'
+            port='3201'
           else
-            port='3100'
+            port='3200'
           fi
-          dockerName='authqdsj'
+          dockerName='chatserver'
           echo "environment=${environment}" >> data.env
           echo "port=${port}" >> data.env
           echo "dockerName=${dockerName}" >> data.env
@@ -63,12 +63,6 @@ jobs:
           echo "port=${port}" >> $GITHUB_OUTPUT
           echo "dockerName=${dockerName}" >> $GITHUB_OUTPUT
 
-      - name: Print tag
-        run: |
-          echo "tag=${tag}"
-          echo ${environment}
-          echo ${port}
-          echo ${dockerName}
       # 登录到 Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
