@@ -3,6 +3,8 @@ import { ChatService } from './chat.service';
 import { ChatController } from './chat.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import { AuthServerAuthGuard } from 'src/guards/authService.auth';
+import { JwtAuthGuard } from 'src/guards/jwt.auth';
 
 @Module({
   imports: [
@@ -27,6 +29,6 @@ import { ConfigService } from '@nestjs/config';
     ]),
   ],
   controllers: [ChatController],
-  providers: [ChatService],
+  providers: [ChatService, JwtAuthGuard, AuthServerAuthGuard],
 })
 export class ChatModule {}
