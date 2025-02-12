@@ -1,17 +1,107 @@
+name: Chat Server Deploy
+
 on:
-  workflow_run:
-    workflows: [develop]
-    types: [completed]
-    branches: [develop]
+  push:
+    branches: [main, develop]
 
 jobs:
+  setEnv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set Environment
+        run: |
+          echo ${{ github.ref }}
+          environment=${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+          if [ $environment == 'prod' ]; then
+            port='3201'
+          else
+            port='3200'
+          fi
+          dockerName='chatserver'
+          sqlName='chatserver'
+          echo "environment=${environment}" >> data.env
+          echo "port=${port}" >> data.env
+          echo "dockerName=${dockerName}" >> data.env
+          echo "sqlName=${sqlName}" >> data.env
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-env
+          path: data.env
+
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: setEnv # 指定依赖关系
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     steps:
-      # 下载构建产物
-      - uses: actions/download-artifact@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
         with:
-          name: dist
-          path: dist/
-      # 部署步骤...
+          persist-credentials: false
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: data-env
+
+      - name: Load variables
+        id: vars
+        run: |
+          source data.env
+
+          date=$(date +'%Y%m%d_%H%M%S')
+          version=$(node -p "require('./package.json').version")
+          tag="${environment}-${version}-${date}"
+          echo ${tag}
+
+          echo "tag=${tag}" >> $GITHUB_OUTPUT
+          echo "environment=${environment}" >> $GITHUB_OUTPUT
+          echo "port=${port}" >> $GITHUB_OUTPUT
+          echo "dockerName=${dockerName}" >> $GITHUB_OUTPUT
+          echo "sqlName=${sqlName}" >> data.env
+
+      # 登录到 Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_NAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      # 构建并推送 Docker 镜像
+      - name: Build and push
+        env:
+          DOCKER_TAG: ${{ steps.vars.outputs.tag }}
+          dockerName: ${{ steps.vars.outputs.dockerName }}
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: zenoschen/${{env.dockerName}}:${{ env.DOCKER_TAG }}
+
+      # 通过 SSH 在服务器上部署
+      - name: Deploy to Server
+        env:
+          port: ${{ steps.vars.outputs.port }}
+          dockerName: ${{ steps.vars.outputs.dockerName }}
+          tag: ${{ steps.vars.outputs.tag }}
+          sqlName: ${{ steps.vars.outputs.sqlName }}
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER_NAME }}
+          key: ${{ secrets.SERVER_KEY }}
+          script: |
+            docker pull zenoschen/${{ env.dockerName }}:${{ env.tag }}
+            docker stop ${{ env.dockerName }} || true
+            docker rm ${{ env.dockerName }} || true
+            docker run -d --name ${{ env.dockerName }} \
+              -p ${{ env.port }}:${{ env.port }} \
+              -e DB_HOST=${{ secrets.SERVER_HOST }} \
+              -e DB_USERNAME=${{ secrets.SQL_AUTHQDSJ_NAME }} \
+              -e DB_PASSWORD=${{ secrets.SQL_AUTHQDSJ_KEY }} \
+              -e DB_PORT=${{ secrets.SERVER_SQL_PORT }} \
+              -e DB_DATABASE=${{env.sqlName}} \
+              -e PORT=${{ env.port }} \
+              zenoschen/${{ env.dockerName }}:${{ env.tag }}

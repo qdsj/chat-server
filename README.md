@@ -1,11 +1,3 @@
-# Node.js Deploy Action
+## Chat Server
 
-A GitHub Action to deploy Node.js applications to a remote server via SSH.
-
-## Features
-- 🚀 Automated Node.js deployment
-- 🔒 Secure SSH-based deployment
-- 📂 Version-based deployment directories
-- 🔄 Automatic symlink updates
-
-## Usage
+这是Blue的毕设后端项目--聊天室
