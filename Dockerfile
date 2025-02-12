@@ -15,6 +15,7 @@ FROM node:22-alpine AS production-stage
 
 COPY --from=build-stage /app/dist /app
 COPY --from=build-stage /app/package*.json /app
+COPY --from=build-stage /app/.env.production /app
 
 WORKDIR /app
 
