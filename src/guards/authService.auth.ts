@@ -1,16 +1,23 @@
-import { CanActivate, ExecutionContext, Inject } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ClientProxy } from '@nestjs/microservices';
-import { Request, response } from 'express';
+import { Request } from 'express';
 
+@Injectable()
 export class AuthServerAuthGuard implements CanActivate {
-  private readonly jwtService: JwtService;
-
-  @Inject('AUTH_SERVICE')
-  private readonly authService: ClientProxy;
+  constructor(
+    private readonly jwtService: JwtService,
+    @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
+    const response = context.switchToHttp().getResponse();
     // 是否跳过
     if (request['skip-cookie-guard']) {
       return true;
@@ -22,12 +29,11 @@ export class AuthServerAuthGuard implements CanActivate {
       try {
         // 与auth service进行校验，验证auth-token的正确性
         res = await this.authService.send('isLogin', authToken).toPromise();
-        console.log('cookie res: ', res);
         if (res && res.isLogin) {
           // 验证通过，颁发新的token
-          const newToken = this.jwtService.sign({ username: res.username });
           request['user'] = res;
-          request.headers.token = newToken;
+          const newToken = this.jwtService.sign({ username: res.username });
+          response.setHeader('token', newToken);
           return true;
         }
       } catch (error) {
@@ -35,8 +41,14 @@ export class AuthServerAuthGuard implements CanActivate {
         return false;
       }
     }
+    console.log('auth token is null');
+    const redirectUrl =
+      res?.redirect ||
+      (await this.authService.send('getRedirectUrl', '').toPromise());
+
+    console.log('redirectUrl: ', redirectUrl, res);
     // 验证失败，返回401，指定登录页面，让前端打开新的登录页面
-    response['redirect'] = res?.redirect || '';
+    response.setHeader('redirect', redirectUrl);
     return false;
   }
 
