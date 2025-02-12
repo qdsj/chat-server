@@ -1,23 +1,50 @@
 import { Injectable } from '@nestjs/common';
-import { CreateChatSocketDto } from './dto/create-chat-socket.dto';
-import { UpdateChatSocketDto } from './dto/update-chat-socket.dto';
+import { Socket } from 'socket.io';
+import { ConnectedServer, JoinRoom } from './dto/create-chat-socket.dto';
+const onlineSocket = new Map();
+const roomMap = new Map();
+
+const messageList = [];
 
 @Injectable()
 export class ChatSocketService {
-  create(createChatSocketDto: CreateChatSocketDto) {
-    return 'This action adds a new chatSocket';
+  online(client: Socket) {
+    onlineSocket.set(client.id, { client });
   }
 
-  findAll() {
-    return `This action returns all chatSocket`;
+  connect(client: Socket, createDto: ConnectedServer) {
+    if (onlineSocket.get(client.id)) {
+      onlineSocket.set(client.id, {
+        ...onlineSocket.get(client.id),
+        ...createDto,
+      });
+    }
+
+    return {
+      code: 200,
+      msg: '连接成功',
+    };
+  }
+
+  storeMessage(msg: any) {
+    messageList.push(msg);
+    return true;
+  }
+
+  joinRoom(client: Socket, data: JoinRoom) {
+    if (roomMap.has(data.roomId)) {
+      roomMap.get(data.roomId).push(client.id);
+    } else if (data.roomId) {
+      roomMap.set(data.roomId, [client.id]);
+    }
+  }
+
+  findAllOnline() {
+    return [...onlineSocket.values()];
   }
 
   findOne(id: number) {
     return `This action returns a #${id} chatSocket`;
-  }
-
-  update(id: number, updateChatSocketDto: UpdateChatSocketDto) {
-    return `This action updates a #${id} chatSocket`;
   }
 
   remove(id: number) {
