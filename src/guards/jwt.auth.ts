@@ -11,6 +11,7 @@ export class JwtAuthGuard implements CanActivate {
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
     const request = context.switchToHttp().getRequest();
+    // 获取自己的令牌
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {

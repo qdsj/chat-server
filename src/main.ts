@@ -4,7 +4,7 @@ import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  // app.use(c)
+
   // 启用跨域
   app.enableCors({
     origin: '*', // 允许所有来源
