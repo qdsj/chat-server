@@ -1,7 +1,23 @@
-import { Controller, Get, Inject, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { ClientProxy } from '@nestjs/microservices';
+import { AddFriend } from './dto/add-friend.dto';
+import { Request } from 'express';
+import { JwtAuthGuard } from 'src/guards/jwt.auth';
+import { AuthServerAuthGuard } from 'src/guards/authService.auth';
+import { AgreeFriend } from './dto/agree-friend.dto';
+import { BlockFriend } from './dto/block.friend.dto';
 
+@UseGuards(JwtAuthGuard, AuthServerAuthGuard)
 @Controller('user')
 export class UserController {
   constructor(
@@ -26,5 +42,41 @@ export class UserController {
       .send('findUserByNameOrEmail', params)
       .toPromise();
     return { data: result };
+  }
+
+  @Post('/addFriend')
+  addFriend(
+    @Body() data: AddFriend,
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    console.log(data, req.user);
+    return 'add friend';
+  }
+
+  @Post('/agreeFriend')
+  agreeFrind(
+    @Body() data: AgreeFriend,
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    console.log(data, req.user);
+    return 'agree friend';
+  }
+
+  @Post('/blockFriend')
+  blockFriend(
+    @Body() data: BlockFriend,
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    console.log(data, req.user);
+    return 'blockFriend friend';
+  }
+
+  @Post('/unblockFriend')
+  unblockFriend(
+    @Body() data: BlockFriend,
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    console.log(data, req.user);
+    return 'unblockFriend friend';
   }
 }

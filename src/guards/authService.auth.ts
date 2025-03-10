@@ -33,7 +33,12 @@ export class AuthServerAuthGuard implements CanActivate {
         if (res && res.isLogin) {
           // 验证通过，颁发新的token
           request['user'] = res;
-          const newToken = this.jwtService.sign({ username: res.username });
+          const payload = {
+            username: res.username,
+            id: res.id,
+          };
+          console.log('payload: ', payload);
+          const newToken = this.jwtService.sign(payload);
           response.setHeader('token', newToken);
           return true;
         }

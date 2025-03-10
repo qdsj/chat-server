@@ -22,7 +22,7 @@ import { UserModule } from './user/user.module';
     ChatSocketModule,
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || 'zllb',
+      secret: 'zllb',
       signOptions: { expiresIn: '1d' },
     }),
     ChatModule,
