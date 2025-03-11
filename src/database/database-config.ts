@@ -13,7 +13,7 @@ export const getDataBaseConfig = (configService: ConfigService) => {
     port: configService.get('DB_PORT'),
     username: configService.get('DB_USERNAME'),
     password: configService.get('DB_PASSWORD'),
-    database: configService.get('DB_DATABASE'),
+    database: configService.get('DB_DATABASE') || 'authqdsj',
     entities: [Friends],
     synchronize: true,
     poolSize: 5,
