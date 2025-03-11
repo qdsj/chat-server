@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Friends } from './entities/friends.entity';
+import { Friends, FriendShipType } from './entities/friends.entity';
 
 @Injectable()
 export class UserService {
@@ -20,6 +20,25 @@ export class UserService {
     return this.authService.send('findUserById', id).toPromise();
   }
 
+  isFriendShip(id: string, friendId: string, status?: FriendShipType) {
+    const whereArr = [
+      {
+        userId: id,
+        friendId,
+      },
+      {
+        userId: friendId,
+        friendId: id,
+      },
+    ] as any;
+    if (status) {
+      whereArr.forEach((item) => {
+        item.status = status;
+      });
+    }
+    return this.friendsRepository.findOneBy(whereArr);
+  }
+
   async addFriend(userId: string, friendId: string) {
     // check friendId is Exist
     const friendObj = await this.findUserById(friendId);
@@ -28,6 +47,9 @@ export class UserService {
       throw new BadRequestException('好友不存在');
     }
 
+    if (await this.isFriendShip(userId, friendId)) {
+      throw new BadRequestException('已经是好友关系');
+    }
     const friendsRecord = new Friends();
     friendsRecord.userId = userId;
     friendsRecord.friendId = friendId;

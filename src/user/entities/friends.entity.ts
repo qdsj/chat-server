@@ -1,5 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
+export type FriendShipType = 'pending' | 'accepted' | 'rejected' | 'blocked';
+
 @Entity('friends')
 export class Friends {
   @PrimaryGeneratedColumn('uuid')
@@ -22,7 +24,7 @@ export class Friends {
     default: 'pending',
     nullable: false,
   })
-  status: 'pending' | 'accepted' | 'rejected' | 'blocked';
+  status: FriendShipType;
   @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
