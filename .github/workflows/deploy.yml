@@ -22,7 +22,7 @@ jobs:
             port='3200'
           fi
           dockerName='chatserver'
-          sqlName='chatserver'
+          sqlName='authqdsj'
           echo "environment=${environment}" >> data.env
           echo "port=${port}" >> data.env
           echo "dockerName=${dockerName}" >> data.env
