@@ -2,6 +2,11 @@ import { ConfigService } from '@nestjs/config';
 import { Friends } from 'src/user/entities/friends.entity';
 
 export const getDataBaseConfig = (configService: ConfigService) => {
+  console.log(configService.get('DB_HOST'));
+  console.log(configService.get('DB_PORT'));
+  console.log(configService.get('DB_USERNAME'));
+  console.log(configService.get('DB_PASSWORD'));
+  console.log(configService.get('DB_DATABASE'));
   return {
     type: 'mysql',
     host: configService.get('DB_HOST'),
