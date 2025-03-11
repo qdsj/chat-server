@@ -22,7 +22,7 @@ export class Friends {
     default: 'pending',
     nullable: false,
   })
-  status: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'blocked';
   @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',

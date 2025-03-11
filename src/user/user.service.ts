@@ -1,8 +1,8 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { Friends } from './entities/friends.entity';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
 import { ClientProxy } from '@nestjs/microservices';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Friends } from './entities/friends.entity';
 
 @Injectable()
 export class UserService {
@@ -35,11 +35,67 @@ export class UserService {
 
     const res = await this.friendsRepository.save([friendsRecord]);
     if (res.length > 0) {
-      return { status: 'success', data: friendObj };
+      return friendObj; // 只返回业务数据
     }
-    return {
-      status: 'failed',
-      data: null,
-    };
+    throw new Error('添加好友失败'); // 抛出异常而不是返回特定格式
   }
+
+  async getRequestList(id: string) {
+    const users = await this.friendsRepository.find({
+      where: [
+        {
+          userId: id,
+        },
+        {
+          friendId: id,
+        },
+      ],
+    });
+    const tasks = [];
+    users.forEach((user) => {
+      tasks.push(
+        new Promise(async (resolve) => {
+          const isRequester = user.userId === id;
+          const friendObj = await this.findUserById(
+            isRequester ? user.friendId : user.userId,
+          );
+          if (friendObj) {
+            resolve({
+              ...friendObj,
+              status: user.status,
+              isRequester,
+            });
+          } else {
+            resolve(null);
+          }
+        }),
+      );
+    });
+    const usersInfo = await Promise.all(tasks);
+
+    return usersInfo.filter(Boolean);
+  }
+
+  async agreeFriend(id: string, friendId: string) {
+    const friendObj = await this.findUserById(friendId);
+    if (!friendObj) {
+      throw new BadRequestException('用户不存在');
+    }
+
+    const friendShip = await this.friendsRepository.findOneBy([
+      { userId: friendId, friendId: id },
+    ]);
+
+    if (!friendShip) {
+      throw new BadRequestException(`${friendObj.username}没有发出好友申请`);
+    }
+    friendShip.status = 'accepted';
+    const res = await this.friendsRepository.save(friendShip);
+    if (!res) {
+      throw new Error('同意失败');
+    }
+    return res;
+  }
+
+  async blockFriend() {}
 }

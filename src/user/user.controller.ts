@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Inject,
   Post,
   Query,
@@ -41,21 +42,71 @@ export class UserController {
   }
 
   @Post('/addFriend')
-  addFriend(
+  async addFriend(
     @Body() data: AddFriend,
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
     console.log(data, req.user);
-    return this.userService.addFriend(req.user.id, data.friendId);
+    try {
+      const res = await this.userService.addFriend(req.user.id, data.friendId);
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
+  @Get('/getRequestList')
+  async getRequestList(
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    const userId = req.user.id;
+    try {
+      const data = await this.userService.getRequestList(userId);
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
   }
 
   @Post('/agreeFriend')
-  agreeFriend(
+  async agreeFriend(
     @Body() data: AgreeFriend,
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
     console.log(data, req.user);
-    return 'agree friend';
+    try {
+      const res = await this.userService.agreeFriend(
+        req.user.id,
+        data.friendId,
+      );
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
   }
 
   @Post('/blockFriend')
