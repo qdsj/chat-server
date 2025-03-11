@@ -110,20 +110,52 @@ export class UserController {
   }
 
   @Post('/blockFriend')
-  blockFriend(
+  async blockFriend(
     @Body() data: BlockFriend,
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
     console.log(data, req.user);
-    return 'blockFriend friend';
+    try {
+      const res = await this.userService.blockFriend(
+        req.user.id,
+        data.friendId,
+      );
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
   }
 
   @Post('/unblockFriend')
-  unblockFriend(
+  async unblockFriend(
     @Body() data: BlockFriend,
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
     console.log(data, req.user);
-    return 'unblockFriend friend';
+    try {
+      const res = await this.userService.unblockFriend(
+        req.user.id,
+        data.friendId,
+      );
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
   }
 }

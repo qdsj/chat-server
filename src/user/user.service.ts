@@ -63,7 +63,7 @@ export class UserService {
             resolve({
               ...friendObj,
               status: user.status,
-              isRequester,
+              isRequester: !isRequester,
             });
           } else {
             resolve(null);
@@ -82,9 +82,10 @@ export class UserService {
       throw new BadRequestException('用户不存在');
     }
 
-    const friendShip = await this.friendsRepository.findOneBy([
-      { userId: friendId, friendId: id },
-    ]);
+    const friendShip = await this.friendsRepository.findOneBy({
+      userId: friendId,
+      friendId: id,
+    });
 
     if (!friendShip) {
       throw new BadRequestException(`${friendObj.username}没有发出好友申请`);
@@ -97,5 +98,62 @@ export class UserService {
     return res;
   }
 
-  async blockFriend() {}
+  async blockFriend(id: string, friendId: string) {
+    const friendObj = await this.findUserById(friendId);
+    if (!friendObj) {
+      throw new BadRequestException('用户不存在');
+    }
+
+    const friendShip = await this.friendsRepository.findOneBy([
+      {
+        userId: friendId,
+        friendId: id,
+      },
+      {
+        userId: id,
+        friendId: friendId,
+      },
+    ]);
+
+    if (!friendShip || friendShip.status !== 'accepted') {
+      throw new BadRequestException(`${friendObj.username}与你不是好友关系`);
+    }
+    friendShip.status = 'blocked';
+    const res = await this.friendsRepository.save(friendShip);
+    if (!res) {
+      throw new Error('拉黑失败');
+    }
+    return res;
+  }
+
+  async unblockFriend(id: string, friendId: string) {
+    const friendObj = await this.findUserById(friendId);
+    if (!friendObj) {
+      throw new BadRequestException('用户不存在');
+    }
+
+    const friendShip = await this.friendsRepository.findOneBy([
+      {
+        userId: friendId,
+        friendId: id,
+      },
+      {
+        userId: id,
+        friendId: friendId,
+      },
+    ]);
+
+    if (!friendShip) {
+      throw new BadRequestException(`${friendObj.username}与你不是好友关系`);
+    }
+    if (friendShip.status !== 'blocked') {
+      throw new BadRequestException(`${friendObj.username}没有被你拉黑`);
+    }
+    friendShip.status = 'accepted';
+    const res = await this.friendsRepository.save(friendShip);
+    if (!res) {
+      throw new Error('恢复好友关系失败');
+    }
+    return res;
+  }
 }
