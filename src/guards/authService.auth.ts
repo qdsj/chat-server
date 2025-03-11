@@ -55,7 +55,7 @@ export class AuthServerAuthGuard implements CanActivate {
 
     console.log('redirectUrl: ', redirectUrl, res);
     // 验证失败，返回403，指定登录页面，让前端打开新的登录页面
-    response.setHeader('redirect', redirectUrl);
+    response.setHeader('redirect', redirectUrl || '/');
     return false;
   }
 

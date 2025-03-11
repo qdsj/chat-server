@@ -17,7 +17,7 @@ export class Friends {
   friendId: string;
 
   @Column({
-    type: 'varchar',
+    type: 'enum',
     enum: ['pending', 'accepted', 'rejected', 'blocked'],
     default: 'pending',
     nullable: false,

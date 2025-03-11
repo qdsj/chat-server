@@ -29,18 +29,14 @@ export class UserController {
   async findUserByName(@Query('username') username: string) {
     if (!username) return { data: null };
     const params = { username };
-    const result = await this.authService
-      .send('findUserByNameOrEmail', params)
-      .toPromise();
+    const result = await this.userService.findUserByNameOrEmail(params);
     return { data: result };
   }
   @Get('/findUserByEmail')
   async findUserByEmail(@Query('email') email: string) {
     if (!email) return { data: null };
     const params = { email };
-    const result = await this.authService
-      .send('findUserByNameOrEmail', params)
-      .toPromise();
+    const result = await this.userService.findUserByNameOrEmail(params);
     return { data: result };
   }
 
@@ -50,11 +46,11 @@ export class UserController {
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
     console.log(data, req.user);
-    return 'add friend';
+    return this.userService.addFriend(req.user.id, data.friendId);
   }
 
   @Post('/agreeFriend')
-  agreeFrind(
+  agreeFriend(
     @Body() data: AgreeFriend,
     @Req() req: Request & { user: { id: string; username: string } },
   ) {

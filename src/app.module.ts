@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ClientsModule } from '@nestjs/microservices';
 import { AppController } from './app.controller';
@@ -8,22 +8,28 @@ import { ChatSocketModule } from './chat-socket/chat-socket.module';
 import { ChatModule } from './chat/chat.module';
 import { AuthServerConfig } from './microService/AuthServer';
 import { UserModule } from './user/user.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { getDataBaseConfig } from './database/database-config';
 
 @Global()
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath:
-        process.env.NODE_ENV === 'production'
-          ? '.env.production'
-          : ['.env', '.env.local'],
+      envFilePath: ['.env', '.env.local', '.env.production'],
     }),
     ChatSocketModule,
     JwtModule.register({
       global: true,
       secret: 'zllb',
       signOptions: { expiresIn: '1d' },
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        return getDataBaseConfig(configService) as any;
+      },
     }),
     ChatModule,
     UserModule,
