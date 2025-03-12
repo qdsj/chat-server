@@ -17,7 +17,7 @@ export const getDataBaseConfig = (configService: ConfigService) => {
     entities: [Friends],
     synchronize: true,
     poolSize: 5,
-    logging: true,
+    logging: false,
     connectorPackage: 'mysql2',
     extra: {
       authPlugins: 'sha256_password',

@@ -42,6 +42,27 @@ export class UserController {
     return { data: result };
   }
 
+  @Get('/getFriendList')
+  async getFriendList(
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    const userId = req.user.id;
+    try {
+      const data = await this.userService.getFriendList(userId);
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
   @Post('/addFriend')
   async addFriend(
     @Body() data: AddFriend,

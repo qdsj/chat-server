@@ -1,3 +1,5 @@
+import { UseGuards } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import {
   ConnectedSocket,
   MessageBody,
@@ -6,14 +8,14 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { SocketAuthGuard } from 'src/guards/socket.auth';
+import { WsAuthMiddleware } from 'src/middlewares/authSocket.middleware';
 import { ChatSocketService } from './chat-socket.service';
 import {
   ConnectedServer,
   JoinRoom,
   SendPayload,
 } from './dto/create-chat-socket.dto';
-
-// @UseGuards(JwtAuthGuard, AuthServerAuthGuard)
 @WebSocketGateway(3210, {
   cors: {
     origin: '*',
@@ -26,15 +28,25 @@ import {
   namespace: '/', // 默认命名空间
 })
 export class ChatSocketGateway {
-  constructor(private readonly chatSocketService: ChatSocketService) {}
+  constructor(
+    private readonly chatSocketService: ChatSocketService,
+    private jwtService: JwtService,
+  ) {}
 
   @WebSocketServer()
   private server: Server;
 
-  handleConnection(socket: Socket) {
-    console.log('连接成功', socket.id);
-    this.chatSocketService.online(socket);
+  afterInit(socket: Socket) {
+    socket.use(
+      WsAuthMiddleware(this.jwtService, () => {
+        console.log('连接成功', socket.id);
+        this.chatSocketService.online(socket);
+      }) as any,
+    );
   }
+  // handleConnection(socket: Socket) {
+
+  // }
 
   @SubscribeMessage('connect-server')
   create(
@@ -45,6 +57,7 @@ export class ChatSocketGateway {
     return this.chatSocketService.connect(client, payload);
   }
 
+  @UseGuards(SocketAuthGuard)
   @SubscribeMessage('join')
   joinRoom(
     @MessageBody() payload: JoinRoom,

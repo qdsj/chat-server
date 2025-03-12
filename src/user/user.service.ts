@@ -20,6 +20,49 @@ export class UserService {
     return this.authService.send('findUserById', id).toPromise();
   }
 
+  async getFriendList(id: string) {
+    const friendList = await this.friendsRepository.find({
+      where: [
+        {
+          userId: id,
+          status: 'accepted',
+        },
+        {
+          friendId: id,
+          status: 'accepted',
+        },
+      ],
+    });
+
+    if (!friendList) {
+      return [];
+    }
+    const tasks = [];
+    friendList.forEach((friend) => {
+      tasks.push(
+        new Promise(async (resolve) => {
+          const isRequester = friend.userId === id;
+          const friendObj = await this.findUserById(
+            isRequester ? friend.friendId : friend.userId,
+          );
+          if (friendObj) {
+            resolve({
+              ...friendObj,
+              status: friend.status,
+              requestMessage: friend.requestMessage,
+              isRequester: !isRequester,
+            });
+          } else {
+            resolve(null);
+          }
+        }),
+      );
+    });
+    const usersInfo = await Promise.all(tasks);
+
+    return usersInfo.filter(Boolean);
+  }
+
   isFriendShip(id: string, friendId: string, status?: FriendShipType) {
     const whereArr = [
       {
