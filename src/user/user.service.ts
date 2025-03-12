@@ -39,7 +39,7 @@ export class UserService {
     return this.friendsRepository.findOneBy(whereArr);
   }
 
-  async addFriend(userId: string, friendId: string) {
+  async addFriend(userId: string, friendId: string, requestMessage: string) {
     // check friendId is Exist
     const friendObj = await this.findUserById(friendId);
 
@@ -53,6 +53,7 @@ export class UserService {
     const friendsRecord = new Friends();
     friendsRecord.userId = userId;
     friendsRecord.friendId = friendId;
+    friendsRecord.requestMessage = requestMessage;
     friendsRecord.status = 'pending';
 
     const res = await this.friendsRepository.save([friendsRecord]);
@@ -85,6 +86,7 @@ export class UserService {
             resolve({
               ...friendObj,
               status: user.status,
+              requestMessage: user.requestMessage,
               isRequester: !isRequester,
             });
           } else {

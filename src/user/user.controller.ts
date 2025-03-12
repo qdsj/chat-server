@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -47,19 +48,23 @@ export class UserController {
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
     console.log(data, req.user);
+    if (!data.friendId || !data.requestMessage) {
+      throw new BadRequestException('friendId and requestMessage are required');
+    }
+
     try {
-      const res = await this.userService.addFriend(req.user.id, data.friendId);
+      const res = await this.userService.addFriend(
+        req.user.id,
+        data.friendId,
+        data.requestMessage,
+      );
       return {
         status: HttpStatus.OK,
         message: 'success',
         data: res,
       };
     } catch (error) {
-      return {
-        status: HttpStatus.BAD_REQUEST,
-        message: error.message,
-        data: null,
-      };
+      throw new BadRequestException(error.message);
     }
   }
 

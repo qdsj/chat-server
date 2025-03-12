@@ -19,6 +19,12 @@ export class Friends {
   friendId: string;
 
   @Column({
+    type: 'text',
+    nullable: false,
+  })
+  requestMessage: string;
+
+  @Column({
     type: 'enum',
     enum: ['pending', 'accepted', 'rejected', 'blocked'],
     default: 'pending',
