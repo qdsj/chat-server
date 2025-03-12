@@ -1,4 +1,11 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  HttpStatus,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AppService } from './app.service';
 import { JwtAuthGuard } from './guards/jwt.auth';
 import { AuthServerAuthGuard } from './guards/authService.auth';
@@ -14,9 +21,18 @@ export class AppController {
 
   @UseGuards(JwtAuthGuard, AuthServerAuthGuard)
   @Get('/getUserInfo')
-  getUserInfo(
+  async getUserInfo(
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
-    return this.appService.getUserInfo(req.user.id);
+    try {
+      const data = await this.appService.getUserInfo(req.user.id);
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }

@@ -10,6 +10,8 @@ import { AuthServerConfig } from './microService/AuthServer';
 import { UserModule } from './user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { getDataBaseConfig } from './database/database-config';
+import { JwtAuthGuard } from './guards/jwt.auth';
+import { AuthServerAuthGuard } from './guards/authService.auth';
 
 @Global()
 @Module({
@@ -36,7 +38,7 @@ import { getDataBaseConfig } from './database/database-config';
     ClientsModule.registerAsync([AuthServerConfig()]),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, JwtAuthGuard, AuthServerAuthGuard],
   exports: [ClientsModule],
 })
 export class AppModule {}

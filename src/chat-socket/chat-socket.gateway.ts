@@ -13,6 +13,7 @@ import {
   SendPayload,
 } from './dto/create-chat-socket.dto';
 
+// @UseGuards(JwtAuthGuard, AuthServerAuthGuard)
 @WebSocketGateway(3210, {
   cors: {
     origin: '*',
@@ -50,7 +51,6 @@ export class ChatSocketGateway {
     @ConnectedSocket() client: Socket,
   ) {
     client.join(payload.roomId);
-    // this.server.joi
     return this.chatSocketService.joinRoom(client, payload);
   }
 
