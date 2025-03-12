@@ -10,5 +10,6 @@ import { Friends } from './entities/friends.entity';
   imports: [TypeOrmModule.forFeature([Friends])],
   controllers: [UserController],
   providers: [UserService, JwtAuthGuard, AuthServerAuthGuard],
+  exports: [UserService],
 })
 export class UserModule {}
