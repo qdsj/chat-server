@@ -38,15 +38,16 @@ export class ChatSocketGateway {
 
   afterInit(socket: Socket) {
     socket.use(
-      WsAuthMiddleware(this.jwtService, () => {
-        console.log('连接成功', socket.id);
-        this.chatSocketService.online(socket);
+      WsAuthMiddleware(this.jwtService, (socket) => {
+        console.log('连接成功', socket.id, socket.data);
+        this.chatSocketService.online(socket, socket.data.user.id);
       }) as any,
     );
   }
-  // handleConnection(socket: Socket) {
 
-  // }
+  handleConnection(client: Socket) {
+
+  }
 
   @SubscribeMessage('connect-server')
   create(
@@ -78,8 +79,8 @@ export class ChatSocketGateway {
     @ConnectedSocket() client: Socket,
   ) {
     console.log('receive: ', payload);
-    this.server.to(payload.roomId).except(client.id).emit('message', payload); // 使用 server 进行广播
-    // client.broadcast.to(payload.roomId).emit('message', payload);
+    // this.server.to(payload.roomId).except(client.id).emit('message', payload); // 使用 server 进行广播
+    client.to(payload.roomId).emit('message', payload); // 使用 client 进行广播
     return 'success';
   }
 

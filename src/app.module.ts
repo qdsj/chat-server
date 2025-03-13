@@ -23,8 +23,8 @@ import { UserModule } from './user/user.module';
     ChatSocketModule,
     JwtModule.register({
       global: true,
-      secret: 'zllb',
-      signOptions: { expiresIn: '1d' },
+      secret: 'chat-server-zllb',
+      signOptions: { expiresIn: '30d' },
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

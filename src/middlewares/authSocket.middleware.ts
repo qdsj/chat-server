@@ -13,7 +13,6 @@ export function WsAuthMiddleware(
       next();
     } catch (error) {
       console.log('认证失败', error);
-      // socket.close();
       next(new Error('认证失败'));
     }
   };

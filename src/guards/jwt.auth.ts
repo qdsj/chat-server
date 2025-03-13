@@ -19,7 +19,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      console.log('Validating JWT token');
+      console.log('Validating JWT token...');
       const payload = this.jwtService.verify(token);
       request['user'] = payload;
       request['skip-cookie-guard'] = true;

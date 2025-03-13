@@ -9,17 +9,10 @@ export class SocketAuthGuard implements CanActivate {
     console.log('SocketAuthGuard');
     const client = context.switchToWs().getClient();
 
-    // const token = SocketAuthGuard.extractTokenFromHeader(client);
-    // console.log('Validating socket token', token);
-    // if (!token) {
-    //   throw new WsException('Invalid socket token');
-    // }
-
     try {
       const payload = SocketAuthGuard.validateToken(client, this.jwtService);
       console.log('Socket token payload', payload);
       client.data['user'] = payload;
-      // request['skip-cookie-guard'] = true;
       return true;
     } catch {
       console.log('Invalid socket token');
