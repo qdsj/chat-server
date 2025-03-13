@@ -1,15 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { ConnectedServer, JoinRoom } from './dto/create-chat-socket.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { ChatRoom } from './entities/chat-room-entity';
+import { UserRoomShip } from './entities/user-room-ship.entity';
+import { Repository } from 'typeorm';
+import { SingleChatMsg } from './entities/single-chat-msg-entity';
 const userToClient = {};
 const clientToUser = {};
 const onlineSocket = new Map();
 const roomMap = new Map();
 
-const messageList = [];
-
 @Injectable()
 export class ChatSocketService {
+  @InjectRepository(ChatRoom)
+  private chatRoomRepository: Repository<ChatRoom>;
+
+  @InjectRepository(UserRoomShip)
+  private userRoomShipRepository: Repository<UserRoomShip>;
+
+  @InjectRepository(SingleChatMsg)
+  private singleChatMsgRepository: Repository<SingleChatMsg>;
+
   online(client: Socket, userId: string) {
     userToClient[userId] = client;
     clientToUser[client.id] = userId;
@@ -38,9 +50,29 @@ export class ChatSocketService {
     };
   }
 
-  storeMessage(msg: any) {
-    messageList.push(msg);
+  async storeSingleMessage(
+    userId: string,
+    roomId: string,
+    receiverId: string,
+    msg: any,
+  ) {
+    // messageList.push(msg);
+    // find roomId
+    // save room message
+    await this.singleChatMsgRepository.save({
+      roomId,
+      senderId: userId,
+      receiverId,
+      content: msg,
+    });
     return true;
+  }
+
+  // storeGroupMessage(userId: string, roomId: string, msg: any) {}
+
+  sendMessage(client: Socket, userId: string, receiverId: string, msg: any) {
+    client.to(receiverId).emit('message', msg);
+    this.sendMessage(client, userId, receiverId, msg);
   }
 
   joinRoom(client: Socket, data: JoinRoom) {

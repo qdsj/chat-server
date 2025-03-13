@@ -1,30 +1,38 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('open_window_time')
-export class OpenWindowTime {
+@Entity('chat_room')
+export class ChatRoom {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({
-    type: 'uuid',
+    type: 'varchar',
+    length: 255,
   })
-  userId: string;
+  name: string;
+
   @Column({
     type: 'varchar',
     length: 255,
   })
-  roomId: string;
+  description: string;
 
   @Column({
-    type: 'timestamp',
-    nullable: false,
+    type: 'varchar',
+    length: 255,
   })
-  openTime: Date;
+  avatar: string;
+
+  @Column({
+    type: 'enum',
+    enum: ['person', 'group'],
+  })
+  type: 'person' | 'group';
 
   @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
     nullable: false,
   })
-  createAt: Date;
+  createdAt: Date;
 }

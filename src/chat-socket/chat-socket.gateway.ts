@@ -45,9 +45,9 @@ export class ChatSocketGateway {
     );
   }
 
-  handleConnection(client: Socket) {
+  // handleConnection(client: Socket) {
 
-  }
+  // }
 
   @SubscribeMessage('connect-server')
   create(

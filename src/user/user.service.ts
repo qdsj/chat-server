@@ -3,11 +3,19 @@ import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Friends, FriendShipType } from './entities/friends.entity';
+import { ChatRoom } from 'src/chat-socket/entities/chat-room-entity';
+import { UserRoomShip } from 'src/chat-socket/entities/user-room-ship.entity';
 
 @Injectable()
 export class UserService {
   @InjectRepository(Friends)
   private friendsRepository: Repository<Friends>;
+
+  @InjectRepository(ChatRoom)
+  private chatRoomRepository: Repository<ChatRoom>;
+
+  @InjectRepository(UserRoomShip)
+  private userRoomShipRepository: Repository<UserRoomShip>;
 
   @Inject('AUTH_SERVICE')
   private authService: ClientProxy;
@@ -156,9 +164,25 @@ export class UserService {
 
     if (!friendShip) {
       throw new BadRequestException(`${friendObj.username}没有发出好友申请`);
+    } else if (friendShip.status !== 'pending') {
+      throw new BadRequestException('已经是好友关系');
     }
+
     friendShip.status = 'accepted';
     const res = await this.friendsRepository.save(friendShip);
+
+    this.chatRoomRepository.save({
+      type: 'person',
+      name: `${id}-${friendId}`,
+      avatar: '',
+      description: `${id}-${friendId}的单聊聊天室`,
+    });
+
+    this.userRoomShipRepository.save([
+      { roomId: `${id}-${friendId}`, userId: id },
+      { roomId: `${id}-${friendId}`, userId: friendId },
+    ]);
+
     if (!res) {
       throw new Error('同意失败');
     }

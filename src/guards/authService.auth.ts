@@ -48,7 +48,7 @@ export class AuthServerAuthGuard implements CanActivate {
         return false;
       }
     }
-    console.log('auth token is null');
+    console.log('refresh token is null');
     const redirectUrl =
       res?.redirect ||
       (await this.authService.send('getRedirectUrl', '').toPromise());
@@ -61,7 +61,7 @@ export class AuthServerAuthGuard implements CanActivate {
 
   private extractTokenFromHeader(request: Request): string | undefined {
     const [type, token] =
-      (request.headers.authtoken as string)?.split(' ') ?? [];
+      (request.headers.refreshtoken as string)?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
 }

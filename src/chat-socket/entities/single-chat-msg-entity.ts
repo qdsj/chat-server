@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('single_chat')
-export class SingleChat {
+@Entity('single_chat_msg')
+export class SingleChatMsg {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
