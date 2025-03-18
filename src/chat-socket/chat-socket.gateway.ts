@@ -21,7 +21,7 @@ import {
     origin: '*',
     methods: '*',
     allowedHeaders: '*',
-    credentials: true,
+    credentials: false,
   },
   // path: '/socket.io/', // 添加正确的路径
   transports: ['websocket', 'polling'], // 支持的传输方式
