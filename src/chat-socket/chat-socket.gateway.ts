@@ -25,7 +25,7 @@ import {
   },
   // path: '/socket.io/', // 添加正确的路径
   transports: ['websocket', 'polling'], // 支持的传输方式
-  namespace: '/server/chatweb', // 默认命名空间
+  path: '/server/chatweb', // 默认命名空间
 })
 export class ChatSocketGateway {
   constructor(
