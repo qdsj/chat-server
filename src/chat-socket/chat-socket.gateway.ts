@@ -19,9 +19,6 @@ import {
 @WebSocketGateway(3210, {
   cors: {
     origin: '*',
-    methods: '*',
-    allowedHeaders: '*',
-    credentials: false,
   },
   // path: '/socket.io/', // 添加正确的路径
   transports: ['websocket', 'polling'], // 支持的传输方式
