@@ -21,6 +21,7 @@ import {
     origin: '*',
   },
   allowRequest(req, fn) {
+    console.log(req.headers);
     console.log(req.url);
     fn(null, true);
   },

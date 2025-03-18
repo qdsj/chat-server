@@ -104,4 +104,5 @@ jobs:
               -e DB_PORT=${{ secrets.SERVER_SQL_PORT }} \
               -e DB_DATABASE='authqdsj' \
               -e PORT=${{ env.port }} \
+              -e PORT=3210 \
               zenoschen/${{ env.dockerName }}:${{ env.tag }}
