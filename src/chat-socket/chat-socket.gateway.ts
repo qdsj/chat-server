@@ -21,8 +21,6 @@ import {
     origin: '*',
   },
   allowRequest(req, fn) {
-    console.log(req.headers);
-    console.log(req.url);
     fn(null, true);
   },
   // path: '/socket.io/', // 添加正确的路径
@@ -46,10 +44,6 @@ export class ChatSocketGateway {
       }) as any,
     );
   }
-
-  // handleConnection(client: Socket) {
-
-  // }
 
   @SubscribeMessage('connect-server')
   create(
@@ -76,14 +70,25 @@ export class ChatSocketGateway {
   }
 
   @SubscribeMessage('send')
-  findOne(
+  async findOne(
     @MessageBody() payload: SendPayload,
     @ConnectedSocket() client: Socket,
   ) {
     console.log('receive: ', payload);
+    if (payload.type === 'person') {
+      await this.chatSocketService.sendMessage(
+        client,
+        client.data.user.id,
+        payload.roomId,
+        payload.msg,
+      );
+      return 'success';
+    }
     // this.server.to(payload.roomId).except(client.id).emit('message', payload); // 使用 server 进行广播
-    client.to(payload.roomId).emit('message', payload); // 使用 client 进行广播
-    return 'success';
+    // client.to(payload.roomId).emit('message', payload); // 使用 client 进行广播
+
+    // 返回给发送方
+    return 'not support type';
   }
 
   @SubscribeMessage('removeChatSocket')
