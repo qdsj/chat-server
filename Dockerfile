@@ -31,5 +31,7 @@ ENV NODE_ENV=production
 ENV PORT=
 
 EXPOSE ${PORT}
+# socket port
+EXPOSE 3210
 
 CMD ["node", "main.js"]
