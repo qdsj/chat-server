@@ -20,6 +20,10 @@ import {
   cors: {
     origin: '*',
   },
+  allowRequest(req, fn) {
+    console.log(req.url);
+    fn(null, true);
+  },
   // path: '/socket.io/', // 添加正确的路径
   transports: ['websocket', 'polling'], // 支持的传输方式
   namespace: '/server/chatweb', // 默认命名空间
