@@ -6,10 +6,6 @@ import { UserRoomShip } from 'src/chat-socket/entities/user-room-ship.entity';
 import { Friends } from 'src/user/entities/friends.entity';
 
 export const getDataBaseConfig = (configService: ConfigService) => {
-  console.log(configService.get('DB_HOST'));
-  console.log(configService.get('DB_PORT'));
-  console.log(configService.get('DB_USERNAME'));
-  console.log(configService.get('DB_PASSWORD'));
   console.log(configService.get('DB_DATABASE'));
   return {
     type: 'mysql',
@@ -17,7 +13,7 @@ export const getDataBaseConfig = (configService: ConfigService) => {
     port: configService.get('DB_PORT'),
     username: configService.get('DB_USERNAME'),
     password: configService.get('DB_PASSWORD'),
-    database: configService.get('DB_DATABASE') || 'authqdsj',
+    database: configService.get('DB_DATABASE'),
     entities: [Friends, SingleChatMsg, OpenWindowTime, ChatRoom, UserRoomShip],
     synchronize: true,
     poolSize: 5,
