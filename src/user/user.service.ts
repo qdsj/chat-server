@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { Friends, FriendShipType } from './entities/friends.entity';
 import { ChatRoom } from 'src/chat-socket/entities/chat-room-entity';
 import { UserRoomShip } from 'src/chat-socket/entities/user-room-ship.entity';
+import { generateRoomId } from 'src/util';
 
 @Injectable()
 export class UserService {
@@ -170,17 +171,17 @@ export class UserService {
 
     friendShip.status = 'accepted';
     const res = await this.friendsRepository.save(friendShip);
-
+    const roomId = generateRoomId(id, friendId);
     this.chatRoomRepository.save({
       type: 'person',
-      name: `${id}-${friendId}`,
+      name: roomId,
       avatar: '',
       description: `${id}-${friendId}的单聊聊天室`,
     });
 
     this.userRoomShipRepository.save([
-      { roomId: `${id}-${friendId}`, userId: id },
-      { roomId: `${id}-${friendId}`, userId: friendId },
+      { roomId: roomId, userId: id },
+      { roomId: roomId, userId: friendId },
     ]);
 
     if (!res) {
