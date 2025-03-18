@@ -6,12 +6,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 启用跨域
-  app.enableCors({
-    origin: '*', // 允许所有来源
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: '*',
-    credentials: true,
-  });
+  // app.enableCors({
+  //   origin: '*', // 允许所有来源
+  //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  //   allowedHeaders: '*',
+  //   credentials: true,
+  // });
 
   app.use(cookieParser());
 
