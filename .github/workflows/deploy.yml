@@ -22,7 +22,7 @@ jobs:
             port='3200'
           fi
           dockerName='chatserver'
-          sqlName='chatserver'
+          sqlName='authqdsj'
           echo "environment=${environment}" >> data.env
           echo "port=${port}" >> data.env
           echo "dockerName=${dockerName}" >> data.env
@@ -98,10 +98,11 @@ jobs:
             docker rm ${{ env.dockerName }} || true
             docker run -d --name ${{ env.dockerName }} \
               -p ${{ env.port }}:${{ env.port }} \
+              -p 3210:3210 \
               -e DB_HOST=${{ secrets.SERVER_HOST }} \
               -e DB_USERNAME=${{ secrets.SQL_AUTHQDSJ_NAME }} \
               -e DB_PASSWORD=${{ secrets.SQL_AUTHQDSJ_KEY }} \
               -e DB_PORT=${{ secrets.SERVER_SQL_PORT }} \
-              -e DB_DATABASE=${{env.sqlName}} \
+              -e DB_DATABASE='authqdsj' \
               -e PORT=${{ env.port }} \
               zenoschen/${{ env.dockerName }}:${{ env.tag }}
