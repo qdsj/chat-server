@@ -29,9 +29,10 @@ ENV DB_PORT=3307
 ENV DB_DATABASE=authqdsj
 ENV NODE_ENV=production
 ENV PORT=
+ENV SOCKET_PORT=
 
 EXPOSE ${PORT}
 # socket port
-EXPOSE 3210
+EXPOSE ${SOCKET_PORT}
 
 CMD ["node", "main.js"]

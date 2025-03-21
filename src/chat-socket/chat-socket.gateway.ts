@@ -16,7 +16,7 @@ import {
   JoinRoom,
   SendPayload,
 } from './dto/create-chat-socket.dto';
-@WebSocketGateway(3210, {
+@WebSocketGateway(Number(process.env.WEBSOCKET_PORT), {
   cors: {
     origin: '*',
   },

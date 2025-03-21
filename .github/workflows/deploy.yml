@@ -18,13 +18,16 @@ jobs:
           environment=${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
           if [ $environment == 'prod' ]; then
             port='3201'
+            socketPort='3211'
           else
             port='3200'
+            socketPort='3210'
           fi
           dockerName='chatserver'
           sqlName='authqdsj'
           echo "environment=${environment}" >> data.env
           echo "port=${port}" >> data.env
+          echo "socketPort=${socketPort}" >> data.env
           echo "dockerName=${dockerName}" >> data.env
           echo "sqlName=${sqlName}" >> data.env
       - name: Upload artifact
@@ -60,7 +63,8 @@ jobs:
           echo "tag=${tag}" >> $GITHUB_OUTPUT
           echo "environment=${environment}" >> $GITHUB_OUTPUT
           echo "port=${port}" >> $GITHUB_OUTPUT
-          echo "dockerName=${dockerName}" >> $GITHUB_OUTPUT
+          echo "socketPort=${socketPort}" >> $GITHUB_OUTPUT
+          echo "dockerName=${dockerName}-${environment}" >> $GITHUB_OUTPUT
           echo "sqlName=${sqlName}" >> data.env
 
       # 登录到 Docker Hub
@@ -84,6 +88,7 @@ jobs:
       - name: Deploy to Server
         env:
           port: ${{ steps.vars.outputs.port }}
+          socketPort: ${{ steps.vars.outputs.socketPort }}
           dockerName: ${{ steps.vars.outputs.dockerName }}
           tag: ${{ steps.vars.outputs.tag }}
           sqlName: ${{ steps.vars.outputs.sqlName }}
@@ -98,7 +103,7 @@ jobs:
             docker rm ${{ env.dockerName }} || true
             docker run -d --name ${{ env.dockerName }} \
               -p ${{ env.port }}:${{ env.port }} \
-              -p 3210:3210 \
+              -p ${{ env.socketPort }}:${{ env.socketPort }} \
               -e DB_HOST=${{ secrets.SERVER_HOST }} \
               -e DB_USERNAME=${{ secrets.SQL_AUTHQDSJ_NAME }} \
               -e DB_PASSWORD=${{ secrets.SQL_AUTHQDSJ_KEY }} \
