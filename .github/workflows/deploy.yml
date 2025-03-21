@@ -60,7 +60,7 @@ jobs:
           echo "tag=${tag}" >> $GITHUB_OUTPUT
           echo "environment=${environment}" >> $GITHUB_OUTPUT
           echo "port=${port}" >> $GITHUB_OUTPUT
-          echo "dockerName=${dockerName}" >> $GITHUB_OUTPUT
+          echo "dockerName=${dockerName}-${environment}" >> $GITHUB_OUTPUT
           echo "sqlName=${sqlName}" >> data.env
 
       # 登录到 Docker Hub
