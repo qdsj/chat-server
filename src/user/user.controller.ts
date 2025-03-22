@@ -63,6 +63,28 @@ export class UserController {
     }
   }
 
+  // 获取拉黑好友列表
+  @Get('/getBlockList')
+  async getBlockList(
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    const userId = req.user.id;
+    try {
+      const data = await this.userService.getBlockList(userId);
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
   @Post('/addFriend')
   async addFriend(
     @Body() data: AddFriend,
