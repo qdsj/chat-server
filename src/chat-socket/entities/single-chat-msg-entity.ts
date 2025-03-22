@@ -1,5 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
+export type MsgType = 'text' | 'image' | 'video' | 'audio';
+
 @Entity('single_chat_msg')
 export class SingleChatMsg {
   @PrimaryGeneratedColumn('uuid')
@@ -25,6 +27,12 @@ export class SingleChatMsg {
     type: 'text',
   })
   content: string;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+  })
+  msgType: MsgType;
 
   @Column({
     type: 'timestamp',

@@ -82,6 +82,7 @@ export class ChatSocketGateway {
         client.data.user.id,
         payload.roomId,
         payload.msg,
+        payload.msgType,
       );
       return 'success';
     }

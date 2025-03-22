@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Socket } from 'socket.io';
-import { ConnectedServer, JoinRoom } from './dto/create-chat-socket.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChatRoom } from './entities/chat-room-entity';
-import { UserRoomShip } from './entities/user-room-ship.entity';
-import { Repository } from 'typeorm';
-import { SingleChatMsg } from './entities/single-chat-msg-entity';
+import { Socket } from 'socket.io';
 import { generateRoomId } from 'src/util';
+import { Repository } from 'typeorm';
+import { ConnectedServer, JoinRoom } from './dto/create-chat-socket.dto';
+import { ChatRoom } from './entities/chat-room-entity';
+import { SingleChatMsg, MsgType } from './entities/single-chat-msg-entity';
+import { UserRoomShip } from './entities/user-room-ship.entity';
 const userToClient = {};
 const clientToUser = {};
 const onlineSocket = new Map();
@@ -51,7 +51,12 @@ export class ChatSocketService {
     };
   }
 
-  async storeSingleMessage(userId: string, receiverId: string, msg: any) {
+  async storeSingleMessage(
+    userId: string,
+    receiverId: string,
+    msg: any,
+    msgType: MsgType,
+  ) {
     // messageList.push(msg);
     // find roomId
     // save room message
@@ -60,6 +65,7 @@ export class ChatSocketService {
       senderId: userId,
       receiverId,
       content: msg,
+      msgType,
     });
     return true;
   }
@@ -73,9 +79,15 @@ export class ChatSocketService {
     userId: string,
     receiverId: string,
     msg: any,
+    msgType: MsgType,
   ) {
-    client.to(this.getClientIdByUserId(receiverId)).emit('message', msg);
-    await this.storeSingleMessage(userId, receiverId, msg);
+    client.to(this.getClientIdByUserId(receiverId)).emit('message', {
+      message: msg,
+      senderId: userId,
+      receiverId,
+      msgType,
+    });
+    await this.storeSingleMessage(userId, receiverId, msg, msgType);
   }
 
   joinRoom(client: Socket, data: JoinRoom) {

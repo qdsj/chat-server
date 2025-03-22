@@ -16,4 +16,5 @@ export class SendPayload {
   roomId: string;
   msg: string;
   type: 'person' | 'group';
+  msgType: 'text' | 'image' | 'audio' | 'video';
 }
