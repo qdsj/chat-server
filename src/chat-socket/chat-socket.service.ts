@@ -83,7 +83,7 @@ export class ChatSocketService {
   }) {
     const { client, userId, receiverId, msg, msgType } = params;
     client.to(this.getClientIdByUserId(receiverId)).emit('message', {
-      message: msg,
+      msg,
       senderId: userId,
       receiverId,
       msgType,

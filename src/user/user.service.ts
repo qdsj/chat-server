@@ -73,9 +73,16 @@ export class UserService {
       return [];
     }
 
-    return this.getUserInfoByList(friendList, (friend) => {
+    const userMap = {};
+    const userList = await this.getUserInfoByList(friendList, (friend) => {
       return friend.userId !== id ? 'userId' : 'friendId';
     });
+
+    userList.forEach((user) => {
+      userMap[user.id] = user;
+    });
+
+    return Object.values(userMap);
   }
 
   // 获取拉黑好友列表--主动拉黑的好友
