@@ -180,30 +180,13 @@ export class UserService {
         },
       ],
     });
-    const tasks = [];
-    users.forEach((user) => {
-      tasks.push(
-        new Promise(async (resolve) => {
-          const isRequester = user.userId === id;
-          const friendObj = await this.findUserById(
-            isRequester ? user.friendId : user.userId,
-          );
-          if (friendObj) {
-            resolve({
-              ...friendObj,
-              status: user.status,
-              requestMessage: user.requestMessage,
-              isRequester: !isRequester,
-            });
-          } else {
-            resolve(null);
-          }
-        }),
-      );
-    });
-    const usersInfo = await Promise.all(tasks);
 
-    return usersInfo.filter(Boolean);
+    if (!users) {
+      return [];
+    }
+    return this.getUserInfoByList(users, (friend) => {
+      return friend.userId !== id ? 'userId' : 'friendId';
+    });
   }
 
   async agreeFriend(id: string, friendId: string) {
