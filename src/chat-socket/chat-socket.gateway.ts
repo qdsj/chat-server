@@ -17,7 +17,6 @@ import {
   SendPayload,
 } from './dto/create-chat-socket.dto';
 
-console.log('WEBSOCKET_PORT:', Number(process.env.SOCKET_PORT));
 @WebSocketGateway(Number(process.env.SOCKET_PORT), {
   cors: {
     origin: '*',
