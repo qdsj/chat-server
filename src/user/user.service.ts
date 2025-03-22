@@ -29,8 +29,15 @@ export class UserService {
     if (!user) {
       return null;
     }
-    const friendShip = await this.friendsRepository.findOneBy({
-      userId: user.id,
+    const friendShip = await this.friendsRepository.findOne({
+      where: [
+        {
+          userId: user.id,
+        },
+        {
+          friendId: user.id,
+        },
+      ],
     });
 
     if (!friendShip) {
