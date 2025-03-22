@@ -19,6 +19,13 @@ export class Friends {
   friendId: string;
 
   @Column({
+    type: 'uuid',
+    nullable: true,
+    default: '',
+  })
+  requesterId: string;
+
+  @Column({
     type: 'text',
     nullable: false,
   })
@@ -31,6 +38,13 @@ export class Friends {
     nullable: false,
   })
   status: FriendShipType;
+
+  @Column({
+    type: 'uuid',
+    nullable: true,
+  })
+  blockerId: string;
+
   @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',

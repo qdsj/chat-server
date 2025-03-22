@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { Friends, FriendShipType } from './entities/friends.entity';
 import { ChatRoom } from 'src/chat-socket/entities/chat-room-entity';
 import { UserRoomShip } from 'src/chat-socket/entities/user-room-ship.entity';
@@ -21,8 +21,23 @@ export class UserService {
   @Inject('AUTH_SERVICE')
   private authService: ClientProxy;
 
-  findUserByNameOrEmail(params: { username?: string; email?: string }) {
-    return this.authService.send('findUserByNameOrEmail', params).toPromise();
+  async findUserByNameOrEmail(params: { username?: string; email?: string }) {
+    const user: { id: string } = await this.authService
+      .send('findUserByNameOrEmail', params)
+      .toPromise();
+
+    if (!user) {
+      return null;
+    }
+    const friendShip = await this.friendsRepository.findOneBy({
+      userId: user.id,
+    });
+
+    if (!friendShip) {
+      return { ...user, friendShip: null };
+    }
+
+    return { ...user, friendShip };
   }
 
   findUserById(id: string) {
@@ -40,26 +55,60 @@ export class UserService {
           friendId: id,
           status: 'accepted',
         },
+        {
+          blockerId: Not(id),
+          status: 'blocked',
+        },
       ],
     });
 
     if (!friendList) {
       return [];
     }
+
+    return this.getUserInfoByList(friendList, (friend) => {
+      return friend.userId !== id ? 'userId' : 'friendId';
+    });
+  }
+
+  // 获取拉黑好友列表--主动拉黑的好友
+  async getBlockList(id: string) {
+    const blockList = await this.friendsRepository.find({
+      where: [
+        {
+          status: 'blocked',
+          blockerId: id,
+        },
+      ],
+    });
+
+    if (!blockList) {
+      return [];
+    }
+
+    return this.getUserInfoByList(blockList, (friend) => {
+      return friend.userId !== friend.blockerId ? 'userId' : 'friendId';
+    });
+  }
+
+  // 通过关系列表，获取用户信息
+  getUserInfoByList(
+    friends: Friends[],
+    key: string | ((friend: Friends) => string),
+  ) {
     const tasks = [];
-    friendList.forEach((friend) => {
+    friends.forEach((friend) => {
       tasks.push(
         new Promise(async (resolve) => {
-          const isRequester = friend.userId === id;
-          const friendObj = await this.findUserById(
-            isRequester ? friend.friendId : friend.userId,
-          );
+          let _key = '';
+          if (typeof key === 'function') {
+            _key = key(friend);
+          }
+          const friendObj = await this.findUserById(friend[_key]);
           if (friendObj) {
             resolve({
               ...friendObj,
-              status: friend.status,
-              requestMessage: friend.requestMessage,
-              isRequester: !isRequester,
+              friendShip: friend,
             });
           } else {
             resolve(null);
@@ -67,9 +116,7 @@ export class UserService {
         }),
       );
     });
-    const usersInfo = await Promise.all(tasks);
-
-    return usersInfo.filter(Boolean);
+    return Promise.all(tasks).then((users) => users.filter(Boolean));
   }
 
   isFriendShip(id: string, friendId: string, status?: FriendShipType) {
