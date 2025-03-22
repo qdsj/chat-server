@@ -31,6 +31,7 @@ export class SingleChatMsg {
   @Column({
     type: 'varchar',
     length: 255,
+    default: 'text',
   })
   msgType: MsgType;
 

@@ -72,15 +72,16 @@ export class ChatSocketService {
 
   // storeGroupMessage(userId: string, roomId: string, msg: any) {}
   getClientIdByUserId(userId: string) {
-    return userToClient[userId];
+    return userToClient[userId].id;
   }
-  async sendMessage(
-    client: Socket,
-    userId: string,
-    receiverId: string,
-    msg: any,
-    msgType: MsgType,
-  ) {
+  async sendMessage(params: {
+    client: Socket;
+    userId: string;
+    receiverId: string;
+    msg: any;
+    msgType: MsgType;
+  }) {
+    const { client, userId, receiverId, msg, msgType } = params;
     client.to(this.getClientIdByUserId(receiverId)).emit('message', {
       message: msg,
       senderId: userId,

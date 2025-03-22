@@ -17,7 +17,7 @@ import {
   SendPayload,
 } from './dto/create-chat-socket.dto';
 
-@WebSocketGateway(Number(process.env.SOCKET_PORT), {
+@WebSocketGateway(Number(process.env.SOCKET_PORT || 3210), {
   cors: {
     origin: '*',
   },
@@ -77,13 +77,13 @@ export class ChatSocketGateway {
   ) {
     console.log('receive: ', payload);
     if (payload.type === 'person') {
-      await this.chatSocketService.sendMessage(
+      await this.chatSocketService.sendMessage({
         client,
-        client.data.user.id,
-        payload.roomId,
-        payload.msg,
-        payload.msgType,
-      );
+        userId: client.data.user.id,
+        receiverId: payload.roomId,
+        msg: payload.msg || '',
+        msgType: payload.msgType,
+      });
       return 'success';
     }
     // this.server.to(payload.roomId).except(client.id).emit('message', payload); // 使用 server 进行广播
