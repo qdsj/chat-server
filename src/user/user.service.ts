@@ -230,8 +230,8 @@ export class UserService {
     });
 
     this.userRoomShipRepository.save([
-      { roomId: roomId, requesterId: id },
-      { roomId: roomId, requesterId: receiverId },
+      { roomId: roomId, userId: id },
+      { roomId: roomId, userId: receiverId },
     ]);
 
     if (!res) {
