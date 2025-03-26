@@ -9,21 +9,15 @@ export class Friends {
 
   @Column({
     type: 'uuid',
-    nullable: false,
-  })
-  userId: string;
-  @Column({
-    type: 'uuid',
-    nullable: false,
-  })
-  friendId: string;
-
-  @Column({
-    type: 'uuid',
     nullable: true,
     default: '',
   })
   requesterId: string;
+  @Column({
+    type: 'uuid',
+    nullable: false,
+  })
+  receiverId: string;
 
   @Column({
     type: 'text',

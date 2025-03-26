@@ -32,10 +32,10 @@ export class UserService {
     const friendShip = await this.friendsRepository.findOne({
       where: [
         {
-          userId: user.id,
+          requesterId: user.id,
         },
         {
-          friendId: user.id,
+          receiverId: user.id,
         },
       ],
     });
@@ -55,11 +55,11 @@ export class UserService {
     const friendList = await this.friendsRepository.find({
       where: [
         {
-          userId: id,
+          requesterId: id,
           status: 'accepted',
         },
         {
-          friendId: id,
+          receiverId: id,
           status: 'accepted',
         },
         {
@@ -75,7 +75,7 @@ export class UserService {
 
     const userMap = {};
     const userList = await this.getUserInfoByList(friendList, (friend) => {
-      return friend.userId !== id ? 'userId' : 'friendId';
+      return friend.requesterId !== id ? 'requesterId' : 'receiverId';
     });
 
     userList.forEach((user) => {
@@ -101,7 +101,9 @@ export class UserService {
     }
 
     return this.getUserInfoByList(blockList, (friend) => {
-      return friend.userId !== friend.blockerId ? 'userId' : 'friendId';
+      return friend.requesterId !== friend.blockerId
+        ? 'requesterId'
+        : 'receiverId';
     });
   }
 
@@ -133,15 +135,15 @@ export class UserService {
     return Promise.all(tasks).then((users) => users.filter(Boolean));
   }
 
-  isFriendShip(id: string, friendId: string, status?: FriendShipType) {
+  isFriendShip(id: string, receiverId: string, status?: FriendShipType) {
     const whereArr = [
       {
-        userId: id,
-        friendId,
+        requesterId: id,
+        receiverId,
       },
       {
-        userId: friendId,
-        friendId: id,
+        requesterId: receiverId,
+        receiverId: id,
       },
     ] as any;
     if (status) {
@@ -152,20 +154,24 @@ export class UserService {
     return this.friendsRepository.findOneBy(whereArr);
   }
 
-  async addFriend(userId: string, friendId: string, requestMessage: string) {
-    // check friendId is Exist
-    const friendObj = await this.findUserById(friendId);
+  async addFriend(
+    requesterId: string,
+    receiverId: string,
+    requestMessage: string,
+  ) {
+    // check receiverId is Exist
+    const friendObj = await this.findUserById(receiverId);
 
     if (!friendObj) {
       throw new BadRequestException('好友不存在');
     }
 
-    if (await this.isFriendShip(userId, friendId)) {
+    if (await this.isFriendShip(requesterId, receiverId)) {
       throw new BadRequestException('已经是好友关系');
     }
     const friendsRecord = new Friends();
-    friendsRecord.userId = userId;
-    friendsRecord.friendId = friendId;
+    friendsRecord.requesterId = requesterId;
+    friendsRecord.receiverId = receiverId;
     friendsRecord.requestMessage = requestMessage;
     friendsRecord.status = 'pending';
 
@@ -180,10 +186,10 @@ export class UserService {
     const users = await this.friendsRepository.find({
       where: [
         {
-          userId: id,
+          requesterId: id,
         },
         {
-          friendId: id,
+          receiverId: id,
         },
       ],
     });
@@ -192,19 +198,19 @@ export class UserService {
       return [];
     }
     return this.getUserInfoByList(users, (friend) => {
-      return friend.userId !== id ? 'userId' : 'friendId';
+      return friend.requesterId !== id ? 'requesterId' : 'receiverId';
     });
   }
 
-  async agreeFriend(id: string, friendId: string) {
-    const friendObj = await this.findUserById(friendId);
+  async agreeFriend(id: string, receiverId: string) {
+    const friendObj = await this.findUserById(receiverId);
     if (!friendObj) {
       throw new BadRequestException('用户不存在');
     }
 
     const friendShip = await this.friendsRepository.findOneBy({
-      userId: friendId,
-      friendId: id,
+      requesterId: receiverId,
+      receiverId: id,
     });
 
     if (!friendShip) {
@@ -215,17 +221,17 @@ export class UserService {
 
     friendShip.status = 'accepted';
     const res = await this.friendsRepository.save(friendShip);
-    const roomId = generateRoomId(id, friendId);
+    const roomId = generateRoomId(id, receiverId);
     this.chatRoomRepository.save({
       type: 'person',
       name: roomId,
       avatar: '',
-      description: `${id}-${friendId}的单聊聊天室`,
+      description: `${id}-${receiverId}的单聊聊天室`,
     });
 
     this.userRoomShipRepository.save([
-      { roomId: roomId, userId: id },
-      { roomId: roomId, userId: friendId },
+      { roomId: roomId, requesterId: id },
+      { roomId: roomId, requesterId: receiverId },
     ]);
 
     if (!res) {
@@ -234,20 +240,20 @@ export class UserService {
     return res;
   }
 
-  async blockFriend(id: string, friendId: string) {
-    const friendObj = await this.findUserById(friendId);
+  async blockFriend(id: string, receiverId: string) {
+    const friendObj = await this.findUserById(receiverId);
     if (!friendObj) {
       throw new BadRequestException('用户不存在');
     }
 
     const friendShip = await this.friendsRepository.findOneBy([
       {
-        userId: friendId,
-        friendId: id,
+        requesterId: receiverId,
+        receiverId: id,
       },
       {
-        userId: id,
-        friendId: friendId,
+        requesterId: id,
+        receiverId: receiverId,
       },
     ]);
 
@@ -262,20 +268,20 @@ export class UserService {
     return res;
   }
 
-  async unblockFriend(id: string, friendId: string) {
-    const friendObj = await this.findUserById(friendId);
+  async unblockFriend(id: string, receiverId: string) {
+    const friendObj = await this.findUserById(receiverId);
     if (!friendObj) {
       throw new BadRequestException('用户不存在');
     }
 
     const friendShip = await this.friendsRepository.findOneBy([
       {
-        userId: friendId,
-        friendId: id,
+        requesterId: receiverId,
+        receiverId: id,
       },
       {
-        userId: id,
-        friendId: friendId,
+        requesterId: id,
+        receiverId: receiverId,
       },
     ]);
 

@@ -27,6 +27,8 @@ export class UserController {
     @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
   ) {}
 
+  // http method
+  // get post delete put
   @Get('/findUserByName')
   async findUserByName(@Query('username') username: string) {
     if (!username) return { data: null };
@@ -90,7 +92,6 @@ export class UserController {
     @Body() data: AddFriend,
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
-    console.log(data, req.user);
     if (!data.friendId || !data.requestMessage) {
       throw new BadRequestException('friendId and requestMessage are required');
     }
