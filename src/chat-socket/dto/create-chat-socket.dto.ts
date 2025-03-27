@@ -18,3 +18,7 @@ export class SendPayload {
   type: 'person' | 'group';
   msgType: 'text' | 'image' | 'audio' | 'video';
 }
+
+export class SendPayloadToClient extends SendPayload {
+  senderId: string;
+}

@@ -3,8 +3,8 @@ import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
 import { Friends, FriendShipType } from './entities/friends.entity';
-import { ChatRoom } from 'src/chat-socket/entities/chat-room-entity';
-import { UserRoomShip } from 'src/chat-socket/entities/user-room-ship.entity';
+import { ChatRoom } from 'src/chat/entities/chat-room-entity';
+import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
 import { generateRoomId } from 'src/util';
 
 @Injectable()

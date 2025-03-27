@@ -3,10 +3,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Socket } from 'socket.io';
 import { generateRoomId } from 'src/util';
 import { Repository } from 'typeorm';
-import { ConnectedServer, JoinRoom } from './dto/create-chat-socket.dto';
-import { ChatRoom } from './entities/chat-room-entity';
-import { SingleChatMsg, MsgType } from './entities/single-chat-msg-entity';
-import { UserRoomShip } from './entities/user-room-ship.entity';
+import {
+  ConnectedServer,
+  JoinRoom,
+  SendPayloadToClient,
+} from './dto/create-chat-socket.dto';
+import { ChatRoom } from '../chat/entities/chat-room-entity';
+import {
+  SingleChatMsg,
+  MsgType,
+} from '../chat/entities/single-chat-msg-entity';
+import { UserRoomShip } from '../chat/entities/user-room-ship.entity';
+import { ChatService } from 'src/chat/chat.service';
 const userToClient = {};
 const clientToUser = {};
 const onlineSocket = new Map();
@@ -22,6 +30,8 @@ export class ChatSocketService {
 
   @InjectRepository(SingleChatMsg)
   private singleChatMsgRepository: Repository<SingleChatMsg>;
+
+  private chatService: ChatService;
 
   online(client: Socket, userId: string) {
     userToClient[userId] = client;
@@ -57,17 +67,13 @@ export class ChatSocketService {
     msg: any,
     msgType: MsgType,
   ) {
-    // messageList.push(msg);
-    // find roomId
-    // save room message
-    await this.singleChatMsgRepository.save({
+    return this.chatService.saveSingleMessage({
       roomId: generateRoomId(userId, receiverId),
       senderId: userId,
       receiverId,
       content: msg,
       msgType,
     });
-    return true;
   }
 
   // storeGroupMessage(userId: string, roomId: string, msg: any) {}
@@ -82,12 +88,15 @@ export class ChatSocketService {
     msgType: MsgType;
   }) {
     const { client, userId, receiverId, msg, msgType } = params;
-    client.to(this.getClientIdByUserId(receiverId)).emit('message', {
+    const roomId = generateRoomId(userId, receiverId);
+    const message: SendPayloadToClient = {
       msg,
       senderId: userId,
-      receiverId,
+      roomId,
       msgType,
-    });
+      type: 'person',
+    };
+    client.to(this.getClientIdByUserId(receiverId)).emit('message', message);
     await this.storeSingleMessage(userId, receiverId, msg, msgType);
   }
 
