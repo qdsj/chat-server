@@ -23,7 +23,7 @@ export class ChatController {
   }
 
   @Get('/getChatHistory')
-  getChatHistory(
+  async getChatHistory(
     @Body() data: ChatHistoryPayload,
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
@@ -31,7 +31,10 @@ export class ChatController {
     if (!data.roomId) throw new Error('roomId is required');
 
     try {
-      const res = this.chatService.getSingleChatHistory(user, data.roomId);
+      const res = await this.chatService.getSingleChatHistory(
+        user,
+        data.roomId,
+      );
       return {
         status: HttpStatus.OK,
         message: 'success',

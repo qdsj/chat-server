@@ -21,8 +21,10 @@ export class ChatService {
     const roomId = generateRoomId(user.id, friendId);
 
     const res = await this.singleChatMsgRepository.find({ where: { roomId } });
-
-    return res;
+    return res.map((item) => {
+      item.roomId = friendId;
+      return item;
+    });
   }
 
   async saveSingleMessage(params: Omit<SingleChatMsg, 'id' | 'createdAt'>) {

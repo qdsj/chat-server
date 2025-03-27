@@ -21,8 +21,12 @@ export class SocketAuthGuard implements CanActivate {
   }
 
   static extractTokenFromHeader(request: Socket): string | undefined {
-    const [type, token] =
-      request.handshake.auth.authorization?.split(' ') ?? [];
+    const authorization =
+      request.handshake?.auth?.authorization ||
+      request.handshake?.headers?.authorization;
+
+    console.log('authorization', authorization);
+    const [type, token] = authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
 
