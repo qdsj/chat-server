@@ -14,12 +14,16 @@ export class ChatRoom {
   @Column({
     type: 'varchar',
     length: 255,
+    nullable: true,
+    default: '',
   })
   description: string;
 
   @Column({
     type: 'varchar',
     length: 255,
+    nullable: true,
+    default: '',
   })
   avatar: string;
 
@@ -28,6 +32,19 @@ export class ChatRoom {
     enum: ['person', 'group'],
   })
   type: 'person' | 'group';
+
+  @Column({
+    type: 'boolean',
+    nullable: true,
+    default: false,
+  })
+  deleted: boolean;
+
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+  })
+  deletedAt: Date;
 
   @Column({
     type: 'timestamp',
