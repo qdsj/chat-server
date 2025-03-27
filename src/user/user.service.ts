@@ -215,8 +215,6 @@ export class UserService {
 
     if (!friendShip) {
       throw new BadRequestException(`${friendObj.username}没有发出好友申请`);
-    } else if (friendShip.status === 'pending') {
-      throw new BadRequestException('已经发出申请');
     } else if (friendShip.status === 'blocked') {
       throw new BadRequestException('已经被拉黑');
     } else if (friendShip.status === 'accepted') {
