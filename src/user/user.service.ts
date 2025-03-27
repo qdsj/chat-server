@@ -215,7 +215,11 @@ export class UserService {
 
     if (!friendShip) {
       throw new BadRequestException(`${friendObj.username}没有发出好友申请`);
-    } else if (friendShip.status !== 'pending') {
+    } else if (friendShip.status === 'pending') {
+      throw new BadRequestException('已经发出申请');
+    } else if (friendShip.status === 'blocked') {
+      throw new BadRequestException('已经被拉黑');
+    } else if (friendShip.status === 'accepted') {
       throw new BadRequestException('已经是好友关系');
     }
 
@@ -261,6 +265,7 @@ export class UserService {
       throw new BadRequestException(`${friendObj.username}与你不是好友关系`);
     }
     friendShip.status = 'blocked';
+    friendShip.blockerId = id;
     const res = await this.friendsRepository.save(friendShip);
     if (!res) {
       throw new Error('拉黑失败');
