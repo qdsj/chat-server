@@ -141,7 +141,7 @@ export class ChatController {
   }
 
   // 打开聊天窗口
-  @Post('/openChatWindow')
+  @Post('/checkChatWindow')
   async openChatWindow(
     @Body() data: { roomId: string; type: 'person' | 'group' },
     @Req() req: Request & { user: { id: string; username: string } },
@@ -168,6 +168,46 @@ export class ChatController {
       };
     }
   }
+
+  // 关闭聊天窗口
+  // @Post('/closeChatWindow')
+  // async closeChatWindow(@Body() data: { roomId: string }) {
+  //   try {
+  //     if (!data.roomId) throw new Error('roomId is required');
+  //     const res = await this.chatService.closeChatWindow(data.roomId);
+  //     return {
+  //       status: HttpStatus.OK,
+  //       message: 'success',
+  //       data: res,
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       status: HttpStatus.BAD_REQUEST,
+  //       message: error.message,
+  //       data: null,
+  //     };
+  //   }
+  // }
+
+  // 获取聊天窗口的时间
+  // @Post('/getChatWindowsTime')
+  // async getChatWindowTime(@Body() data: { roomId: string }) {
+  //   try {
+  //     if (!data.roomId) throw new Error('roomId is required');
+  //     const res = await this.chatService.getChatWindowTime(data.roomId);
+  //     return {
+  //       status: HttpStatus.OK,
+  //       message: 'success',
+  //       data: res,
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       status: HttpStatus.BAD_REQUEST,
+  //       message: error.message,
+  //       data: null,
+  //     };
+  //   }
+  // }
 
   // 获取群列表
   @Post('/getGroupList')
