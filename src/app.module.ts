@@ -24,7 +24,7 @@ import { UserModule } from './user/user.module';
     JwtModule.register({
       global: true,
       secret: 'chat-server-zllb',
-      signOptions: { expiresIn: '30d' },
+      signOptions: { expiresIn: '300d' },
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
