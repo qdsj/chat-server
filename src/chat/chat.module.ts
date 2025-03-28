@@ -9,6 +9,7 @@ import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
 import { SingleChatMsg } from 'src/chat/entities/single-chat-msg-entity';
 import { GroupChatMsg } from './entities/group-chat-msg-entity';
 import { UserModule } from 'src/user/user.module';
+import { OpenWindowTime } from './entities/open-window-time.entity';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { UserModule } from 'src/user/user.module';
       UserRoomShip,
       SingleChatMsg,
       GroupChatMsg,
+      OpenWindowTime,
     ]),
     UserModule,
   ],

@@ -137,4 +137,25 @@ export class ChatController {
   }
 
   // 打开聊天窗口
+  @Post('/openChatWindow')
+  openChatWindow(
+    @Body() data: { roomId: string; type: 'person' | 'group' },
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      const user = req.user;
+      if (!data.roomId) throw new Error('roomId is required');
+      return this.chatService.openChatWindow({
+        user,
+        roomId: data.roomId,
+        type: data.type,
+      });
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
 }

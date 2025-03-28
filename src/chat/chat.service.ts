@@ -13,6 +13,7 @@ import { User } from './dto/user.dto';
 import { GroupChatMsg } from './entities/group-chat-msg-entity';
 import { UserService } from 'src/user/user.service';
 import { ChatRoomInfo } from './dto/chat.dto';
+import { OpenWindowTime } from './entities/open-window-time.entity';
 
 @Injectable()
 export class ChatService {
@@ -28,7 +29,51 @@ export class ChatService {
   @InjectRepository(GroupChatMsg)
   private groupChatMsgRepository: Repository<GroupChatMsg>;
 
+  @InjectRepository(OpenWindowTime)
+  private openWindowTimeRepository: Repository<OpenWindowTime>;
+
   private userService: UserService;
+
+  // 打开聊天窗口
+  async openChatWindow(params: {
+    user: User;
+    roomId: string;
+    type: 'person' | 'group';
+  }) {
+    let roomId = params.roomId;
+    if (params.type === 'person') {
+      roomId = generateRoomId(params.user.id, params.roomId);
+    }
+
+    let windowTime = await this.openWindowTimeRepository.findOneBy({
+      userId: params.user.id,
+      roomId,
+    });
+
+    if (!windowTime) {
+      windowTime = {
+        userId: params.user.id,
+        roomId,
+        openTime: new Date(),
+      } as any;
+    }
+
+    return await this.openWindowTimeRepository.save(windowTime);
+  }
+
+  // 获取一个聊天窗口列表
+  async getChatWindowListByRoomId(params: { user: User; roomId: string }) {
+    return this.openWindowTimeRepository.find({
+      where: { userId: params.user.id, roomId: params.roomId },
+    });
+  }
+
+  // 获取所有聊天窗口列表
+  async getAllChatWindowList(user: User) {
+    return this.openWindowTimeRepository.find({
+      where: { userId: user.id },
+    });
+  }
 
   // 获取单聊历史
   async getSingleChatHistory(user: User, friendId: string) {
