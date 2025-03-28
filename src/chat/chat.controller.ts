@@ -149,6 +149,7 @@ export class ChatController {
     try {
       const user = req.user;
       if (!data.roomId) throw new Error('roomId is required');
+      if (!data.type) throw new Error('type is required');
       const res = await this.chatService.openChatWindow({
         user,
         roomId: data.roomId,

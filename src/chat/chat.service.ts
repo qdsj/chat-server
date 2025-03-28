@@ -55,11 +55,13 @@ export class ChatService {
       windowTime = {
         userId: params.user.id,
         roomId,
-        openTime: new Date(),
       } as any;
     }
 
-    return await this.openWindowTimeRepository.save(windowTime);
+    windowTime.openTime = new Date();
+    await this.openWindowTimeRepository.update(windowTime.id, windowTime);
+
+    return windowTime;
   }
 
   // 获取一个聊天窗口列表
