@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChatRoom } from 'src/chat/entities/chat-room-entity';
 import { SingleChatMsg } from 'src/chat/entities/single-chat-msg-entity';
@@ -7,12 +7,12 @@ import {
   RoomUserType,
   UserRoomShip,
 } from 'src/chat/entities/user-room-ship.entity';
+import { UserService } from 'src/user/user.service';
 import { generateRoomId } from 'src/util';
 import { Repository } from 'typeorm';
+import { ChatRoomInfo } from './dto/chat.dto';
 import { User } from './dto/user.dto';
 import { GroupChatMsg } from './entities/group-chat-msg-entity';
-import { UserService } from 'src/user/user.service';
-import { ChatRoomInfo } from './dto/chat.dto';
 import { OpenWindowTime } from './entities/open-window-time.entity';
 
 @Injectable()
@@ -32,6 +32,7 @@ export class ChatService {
   @InjectRepository(OpenWindowTime)
   private openWindowTimeRepository: Repository<OpenWindowTime>;
 
+  @Inject(UserService)
   private userService: UserService;
 
   // 打开聊天窗口
@@ -133,6 +134,8 @@ export class ChatService {
         type: 'group',
       },
     ]);
+
+    console.log('chatRoom', chatRoom);
 
     // 创建者视为群主
     await this.addGroupMember({
@@ -242,7 +245,7 @@ export class ChatService {
 
   // 获取群成员的信息
   async getGroupMembersInfo(roomId: string) {
-    const res = await this.chatRoomRepository.find({ where: { name: roomId } });
+    const res = await this.chatRoomRepository.find({ where: { id: roomId } });
 
     if (!res) throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
 
@@ -263,7 +266,7 @@ export class ChatService {
   // 获取群聊基本信息
   async getGroupInfo(roomId: string) {
     const res = await this.chatRoomRepository.findOne({
-      where: { name: roomId },
+      where: { id: roomId },
     });
 
     if (!res) throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
@@ -278,6 +281,7 @@ export class ChatService {
       userId: params.userId,
     });
 
+    console.log('rowData', rowData);
     if (!rowData) {
       throw new HttpException('不在该群内', HttpStatus.BAD_REQUEST);
     } else if (rowData.userType !== 'admin' && rowData.userType !== 'owner') {
@@ -307,10 +311,20 @@ export class ChatService {
   async updateGroupInfo(params: ChatRoomInfo & { userId: string }) {
     const isHasAuth = await this.isGroupOwnerOrAdmin({
       userId: params.userId,
-      roomId: params.name,
+      roomId: params.roomId,
     });
     if (!isHasAuth) throw new HttpException('没有权限', HttpStatus.BAD_REQUEST);
-    return await this.chatRoomRepository.update(params.name, { ...params });
+    const roomId = params.roomId;
+
+    const chatRoomInfo = this.chatRoomRepository.findOneBy({ id: roomId });
+    if (!chatRoomInfo)
+      throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
+    delete params.userId;
+    delete params.roomId;
+    if ('id' in params) {
+      delete params.id;
+    }
+    return await this.chatRoomRepository.update(roomId, { ...params });
   }
 
   // 解散群聊
@@ -321,7 +335,7 @@ export class ChatService {
     });
     if (!isHasAuth) throw new HttpException('没有权限', HttpStatus.BAD_REQUEST);
     const chatRoom = await this.chatRoomRepository.findOneBy({
-      name: params.roomId,
+      id: params.roomId,
     });
     if (!chatRoom)
       throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
@@ -349,5 +363,23 @@ export class ChatService {
       console.log(error);
       return false;
     }
+  }
+
+  // 获取群列表
+  async getGroupList(userId: string) {
+    const res = await this.userRoomShipRepository.find({ where: { userId } });
+    return Promise.all(
+      res.map(async (item) => {
+        try {
+          const info = await this.getGroupInfo(item.roomId);
+          if (info?.type === 'group') {
+            (info as any).roomShip = item;
+            return info;
+          }
+        } catch {
+          return false;
+        }
+      }),
+    ).then((res) => res.filter(Boolean));
   }
 }

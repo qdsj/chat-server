@@ -20,7 +20,11 @@ export class ChatController {
 
   @Get()
   findAll() {
-    return { data: 'chat server-chat findAll' };
+    return {
+      status: HttpStatus.OK,
+      message: 'success',
+      data: 'chat server-chat findAll',
+    };
   }
 
   // 获取单聊聊天记录
@@ -52,7 +56,7 @@ export class ChatController {
   }
 
   @Post('/createGroupChat')
-  createGroupChat(
+  async createGroupChat(
     @Body() data: { userId: string[] },
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
@@ -60,7 +64,7 @@ export class ChatController {
       const user = req.user;
       if (!data.userId) throw new Error('userId is required');
 
-      const res = this.chatService.createGroupByAddMembers({
+      const res = await this.chatService.createGroupByAddMembers({
         userId: user.id,
         memberIds: data.userId,
       });
@@ -81,7 +85,7 @@ export class ChatController {
 
   // 修改群信息
   @Post('/updateGroupInfo')
-  updateGroupInfo(
+  async updateGroupInfo(
     @Body()
     data: { roomId: string[] } & ChatRoomInfo,
     @Req() req: Request & { user: { id: string; username: string } },
@@ -90,7 +94,7 @@ export class ChatController {
       const user = req.user;
       if (!data.roomId) throw new Error('roomId is required');
 
-      const res = this.chatService.updateGroupInfo({
+      const res = await this.chatService.updateGroupInfo({
         ...data,
         userId: user.id,
       });
@@ -138,18 +142,74 @@ export class ChatController {
 
   // 打开聊天窗口
   @Post('/openChatWindow')
-  openChatWindow(
+  async openChatWindow(
     @Body() data: { roomId: string; type: 'person' | 'group' },
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
     try {
       const user = req.user;
       if (!data.roomId) throw new Error('roomId is required');
-      return this.chatService.openChatWindow({
+      const res = await this.chatService.openChatWindow({
         user,
         roomId: data.roomId,
         type: data.type,
       });
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
+  // 获取群列表
+  @Post('/getGroupList')
+  async getGroupList(
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      const res = await this.chatService.getGroupList(req.user.id);
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
+  // 修改群聊信息
+  @Post('/updateGroupChatInfo')
+  async updateGroupChatInfo(
+    @Body() data: ChatRoomInfo & { roomId: string; type: 'person' | 'group' },
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      const user = req.user;
+      if (!data.roomId) throw new Error('roomId is required');
+      if (!data.type) throw new Error('type is required');
+      if (data?.type !== 'group') throw new Error('type must be group');
+      await this.chatService.updateGroupInfo({
+        userId: user.id,
+        ...data,
+      });
+
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: true,
+      };
     } catch (error) {
       return {
         status: HttpStatus.BAD_REQUEST,

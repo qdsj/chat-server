@@ -3,6 +3,7 @@ export class ChatHistoryPayload {
 }
 
 export class ChatRoomInfo {
+  roomId: string;
   name: string;
 
   description: string;
