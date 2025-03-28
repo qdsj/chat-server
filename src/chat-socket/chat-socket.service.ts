@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Socket } from 'socket.io';
 import { generateRoomId } from 'src/util';
@@ -31,6 +31,7 @@ export class ChatSocketService {
   @InjectRepository(SingleChatMsg)
   private singleChatMsgRepository: Repository<SingleChatMsg>;
 
+  @Inject(ChatService)
   private chatService: ChatService;
 
   online(client: Socket, userId: string) {
