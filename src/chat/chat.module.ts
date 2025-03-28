@@ -8,6 +8,7 @@ import { ChatRoom } from 'src/chat/entities/chat-room-entity';
 import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
 import { SingleChatMsg } from 'src/chat/entities/single-chat-msg-entity';
 import { GroupChatMsg } from './entities/group-chat-msg-entity';
+import { UserModule } from 'src/user/user.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { GroupChatMsg } from './entities/group-chat-msg-entity';
       SingleChatMsg,
       GroupChatMsg,
     ]),
+    UserModule,
   ],
   controllers: [ChatController],
   providers: [ChatService, JwtAuthGuard, AuthServerAuthGuard],

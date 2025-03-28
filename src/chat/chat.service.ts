@@ -11,6 +11,8 @@ import { generateRoomId } from 'src/util';
 import { Repository } from 'typeorm';
 import { User } from './dto/user.dto';
 import { GroupChatMsg } from './entities/group-chat-msg-entity';
+import { UserService } from 'src/user/user.service';
+import { ChatRoomInfo } from './dto/chat.dto';
 
 @Injectable()
 export class ChatService {
@@ -26,6 +28,8 @@ export class ChatService {
   @InjectRepository(GroupChatMsg)
   private groupChatMsgRepository: Repository<GroupChatMsg>;
 
+  private userService: UserService;
+
   // 获取单聊历史
   async getSingleChatHistory(user: User, friendId: string) {
     const roomId = generateRoomId(user.id, friendId);
@@ -33,6 +37,26 @@ export class ChatService {
     const res = await this.singleChatMsgRepository.find({ where: { roomId } });
     return res.map((item) => {
       item.roomId = friendId;
+      (item as any).type = 'person';
+      return item;
+    });
+  }
+
+  // 获取群聊消息记录
+  async getGroupChatHistory(params: { roomId: string; userId: string }) {
+    const roomId = params.roomId;
+    const userId = params.userId;
+    // userId是否在该群聊内
+    const roomShip = await this.userRoomShipRepository.findOneBy({
+      roomId,
+      userId,
+    });
+    if (!roomShip) {
+      throw new HttpException('您不在该群聊内', HttpStatus.BAD_REQUEST);
+    }
+    const res = await this.groupChatMsgRepository.find({ where: { roomId } });
+    return res.map((item) => {
+      (item as any).type = 'group';
       return item;
     });
   }
@@ -43,16 +67,23 @@ export class ChatService {
   }
 
   // 创建群聊
-  async createGroup(params: {
+  async createGroupByAddMembers(params: {
     userId: string;
-    name: string;
-    description: string;
+    memberIds: string[];
   }) {
+    const members = await Promise.all(
+      params.memberIds.slice(0, 3).map((id) => {
+        return this.userService.findUserById(id) as Promise<User>;
+      }),
+    );
+
+    const groupName =
+      members.map((item) => item.username).join(', ') + '的群聊';
     // name, description, avatar
-    await this.chatRoomRepository.save([
+    const chatRoom = await this.chatRoomRepository.save([
       {
-        name: params.name,
-        description: params.description,
+        name: groupName,
+        description: '',
         avatar: '',
         type: 'group',
       },
@@ -61,10 +92,17 @@ export class ChatService {
     // 创建者视为群主
     await this.addGroupMember({
       userId: params.userId,
-      roomId: params.name,
+      roomId: chatRoom[0].id,
       status: 'accepted',
       userType: 'owner',
     });
+
+    await this.addGroupMembers({
+      userIds: params.memberIds,
+      roomId: chatRoom[0].id,
+    });
+
+    return chatRoom[0];
   }
 
   // 添加群成员
@@ -221,15 +259,13 @@ export class ChatService {
   }
 
   // 修改群聊信息
-  async updateGroupInfo(
-    params: Omit<ChatRoom, 'id' | 'createdAt'> & { userId: string },
-  ) {
+  async updateGroupInfo(params: ChatRoomInfo & { userId: string }) {
     const isHasAuth = await this.isGroupOwnerOrAdmin({
       userId: params.userId,
       roomId: params.name,
     });
     if (!isHasAuth) throw new HttpException('没有权限', HttpStatus.BAD_REQUEST);
-    await this.chatRoomRepository.update(params.name, { ...params });
+    return await this.chatRoomRepository.update(params.name, { ...params });
   }
 
   // 解散群聊
