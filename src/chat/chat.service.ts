@@ -65,10 +65,31 @@ export class ChatService {
   }
 
   // 获取一个聊天窗口列表
-  async getChatWindowListByRoomId(params: { user: User; roomId: string }) {
-    return this.openWindowTimeRepository.find({
-      where: { userId: params.user.id, roomId: params.roomId },
-    });
+  async getChatWindowListByRoomId(params: {
+    user: User;
+    rooms: { type: 'person' | 'group'; roomId: string }[];
+  }) {
+    const windowTimes = await Promise.all(
+      params.rooms.map(async (item) => {
+        let roomId = item.roomId;
+        if (item.type !== 'group') {
+          roomId = generateRoomId(params.user.id, item.roomId);
+        }
+        return {
+          type: item.type,
+          ...((await this.openWindowTimeRepository.findOne({
+            where: {
+              userId: params.user.id,
+              roomId,
+            },
+          })) || {}),
+          roomInfo: await (item.type === 'group'
+            ? this.chatRoomRepository.findOneBy({ id: roomId })
+            : this.chatRoomRepository.findOneBy({ name: roomId })),
+        };
+      }),
+    );
+    return windowTimes;
   }
 
   // 获取所有聊天窗口列表
@@ -240,25 +261,41 @@ export class ChatService {
 
   // 是否可以继续免同意拉人
   async canJoinGroup(params: { userId: string; roomId: string }) {
-    const count = await this.getGroupMembersCount(params.roomId);
+    const { roomId, userId } = params;
+    const count = await this.getGroupMembersCount({ roomId, userId });
     if (count > 3) return false;
     return true;
   }
 
   // 获取群成员的信息
-  async getGroupMembersInfo(roomId: string) {
+  async getGroupMembersInfo(params: { roomId: string; userId: string }) {
+    const { roomId, userId } = params;
     const res = await this.chatRoomRepository.find({ where: { id: roomId } });
 
     if (!res) throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
 
-    return this.userRoomShipRepository.find({
-      where: { roomId },
-    });
+    return this.userRoomShipRepository
+      .find({
+        where: [{ roomId }],
+      })
+      .then((chatRoomShips) => {
+        return Promise.all(
+          chatRoomShips.map(async (chatRoomShip) => {
+            return {
+              chatRoomShipInfo: chatRoomShip,
+              ...(await this.userService.findUserById(userId)),
+            };
+          }),
+        );
+      });
   }
 
   // 获取群成员的数量
-  async getGroupMembersCount(roomId: string) {
-    const res = await this.userRoomShipRepository.find({ where: { roomId } });
+  async getGroupMembersCount(params: { roomId: string; userId: string }) {
+    const { roomId, userId } = params;
+    const res = await this.userRoomShipRepository.findOne({
+      where: { roomId, userId },
+    });
 
     if (!res) throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
 

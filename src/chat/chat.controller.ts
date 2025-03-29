@@ -140,7 +140,7 @@ export class ChatController {
     }
   }
 
-  // 打开聊天窗口
+  // 查看聊天窗口
   @Post('/checkChatWindow')
   async openChatWindow(
     @Body() data: { roomId: string; type: 'person' | 'group' },
@@ -169,45 +169,38 @@ export class ChatController {
     }
   }
 
-  // 关闭聊天窗口
-  // @Post('/closeChatWindow')
-  // async closeChatWindow(@Body() data: { roomId: string }) {
-  //   try {
-  //     if (!data.roomId) throw new Error('roomId is required');
-  //     const res = await this.chatService.closeChatWindow(data.roomId);
-  //     return {
-  //       status: HttpStatus.OK,
-  //       message: 'success',
-  //       data: res,
-  //     };
-  //   } catch (error) {
-  //     return {
-  //       status: HttpStatus.BAD_REQUEST,
-  //       message: error.message,
-  //       data: null,
-  //     };
-  //   }
-  // }
-
-  // 获取聊天窗口的时间
-  // @Post('/getChatWindowsTime')
-  // async getChatWindowTime(@Body() data: { roomId: string }) {
-  //   try {
-  //     if (!data.roomId) throw new Error('roomId is required');
-  //     const res = await this.chatService.getChatWindowTime(data.roomId);
-  //     return {
-  //       status: HttpStatus.OK,
-  //       message: 'success',
-  //       data: res,
-  //     };
-  //   } catch (error) {
-  //     return {
-  //       status: HttpStatus.BAD_REQUEST,
-  //       message: error.message,
-  //       data: null,
-  //     };
-  //   }
-  // }
+  // 批量获取聊天窗口的时间
+  @Post('/getChatWindowsTime')
+  async getChatWindowTimes(
+    @Body() data: { type: 'person' | 'group'; roomId: string }[],
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      if (
+        !data ||
+        !Array.isArray(data) ||
+        !data.length ||
+        !data[0].roomId ||
+        !data[0].type
+      )
+        throw new Error('data is not valid');
+      const res = await this.chatService.getChatWindowListByRoomId({
+        user: req.user,
+        rooms: data,
+      });
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
 
   // 获取群列表
   @Post('/getGroupList')
@@ -250,6 +243,65 @@ export class ChatController {
         status: HttpStatus.OK,
         message: 'success',
         data: true,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
+  // 获取群成员的数量
+  @Post('/getGroupMemberCount')
+  async getGroupMemberCount(
+    @Body() data: { roomId: string; type: 'person' | 'group' },
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      if (!data.roomId) throw new Error('roomId is required');
+      if (!data.type) throw new Error('type is required');
+      if (data?.type !== 'group') throw new Error('type must be group');
+
+      const res = await this.chatService.getGroupMembersCount({
+        roomId: data.roomId,
+        userId: req.user.id,
+      });
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+  // 获取群成员的信息
+  @Post('/getGroupMemberInfo')
+  async getGroupMemberInfo(
+    @Body() data: { roomId: string; type: 'person' | 'group' },
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      if (!data.roomId) throw new Error('roomId is required');
+      if (!data.type) throw new Error('type is required');
+      if (data?.type !== 'group') throw new Error('type must be group');
+
+      const res = await this.chatService.getGroupMembersInfo({
+        roomId: data.roomId,
+        userId: req.user.id,
+      });
+
+      console.log('res', res);
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
       };
     } catch (error) {
       return {
