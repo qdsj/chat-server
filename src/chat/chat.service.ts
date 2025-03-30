@@ -269,7 +269,7 @@ export class ChatService {
 
   // 获取群成员的信息
   async getGroupMembersInfo(params: { roomId: string; userId: string }) {
-    const { roomId, userId } = params;
+    const { roomId } = params;
     const res = await this.chatRoomRepository.find({ where: { id: roomId } });
 
     if (!res) throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
@@ -283,7 +283,7 @@ export class ChatService {
           chatRoomShips.map(async (chatRoomShip) => {
             return {
               chatRoomShipInfo: chatRoomShip,
-              ...(await this.userService.findUserById(userId)),
+              ...(await this.userService.findUserById(chatRoomShip.userId)),
             };
           }),
         );
