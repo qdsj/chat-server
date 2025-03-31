@@ -178,18 +178,40 @@ export class ChatService {
 
   // 添加群成员
   async addGroupMember(params: {
+    user?: User;
     userId: string;
     roomId: string;
-    status: RoomShipType;
-    userType: RoomUserType;
+    status?: RoomShipType;
+    userType?: RoomUserType;
   }) {
-    await this.userRoomShipRepository.save([
+    const isInRoom = await this.userRoomShipRepository.findOneBy({
+      roomId: params.roomId,
+      userId: params.user.id,
+    });
+
+    if (!isInRoom) {
+      throw new HttpException(
+        params.user.username + ', 您不在该群聊内,无法邀请',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const rowData = await this.userRoomShipRepository.findOneBy({
+      roomId: params.roomId,
+      userId: params.userId,
+    });
+
+    if (rowData) {
+      throw new HttpException('已在该群聊内', HttpStatus.BAD_REQUEST);
+    }
+
+    return await this.userRoomShipRepository.save([
       {
         userId: params.userId,
         roomId: params.roomId,
         type: 'group',
-        status: params.status || 'pending',
-        userType: params.userType || 'member',
+        status: params?.status || 'accepted',
+        userType: params?.userType || 'member',
       },
     ]);
   }
