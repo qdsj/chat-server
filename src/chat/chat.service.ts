@@ -405,7 +405,7 @@ export class ChatService {
   }
 
   // 添加群消息
-  async saveGroupMessage(params: Omit<SingleChatMsg, 'id' | 'createdAt'>) {
+  async saveGroupMessage(params: Omit<GroupChatMsg, 'id' | 'createdAt'>) {
     await this.groupChatMsgRepository.save([{ ...params }]);
   }
 
@@ -427,8 +427,10 @@ export class ChatService {
   }
 
   // 获取群列表
-  async getGroupList(userId: string) {
+  async getGroupList(userId: string): Promise<ChatRoom[]> {
     const res = await this.userRoomShipRepository.find({ where: { userId } });
+    if (res.length === 0) return [];
+
     return Promise.all(
       res.map(async (item) => {
         try {
@@ -441,6 +443,6 @@ export class ChatService {
           return false;
         }
       }),
-    ).then((res) => res.filter(Boolean));
+    ).then((res) => res.filter(Boolean)) as any;
   }
 }

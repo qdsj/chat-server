@@ -34,11 +34,15 @@ export class ChatSocketService {
   @Inject(ChatService)
   private chatService: ChatService;
 
-  online(client: Socket, userId: string) {
+  async online(client: Socket, userId: string) {
     userToClient[userId] = client;
     clientToUser[client.id] = userId;
     // 存储用户id和client的配对关系
     // 找出用户所在的群聊，将用户加入所有的群聊
+    const groupList = await this.chatService.getGroupList(userId);
+    groupList.forEach((item) => {
+      client.join(item.id);
+    });
     // 将群聊内的，在用户打开窗口之后的消息，全部发送给用户
 
     // 用户发送单聊信息，将信息发送给对方的房间，并将消息放到数据库中
@@ -62,6 +66,7 @@ export class ChatSocketService {
     };
   }
 
+  // 存储单聊信息
   async storeSingleMessage(
     userId: string,
     receiverId: string,
@@ -76,6 +81,8 @@ export class ChatSocketService {
       msgType,
     });
   }
+
+  // 存储群聊信息
 
   // storeGroupMessage(userId: string, roomId: string, msg: any) {}
   getClientIdByUserId(userId: string) {
@@ -97,8 +104,42 @@ export class ChatSocketService {
       msgType,
       type: 'person',
     };
+    // send to receiver
     client.to(this.getClientIdByUserId(receiverId)).emit('message', message);
+    // send to client
+    client.emit('message', message);
     await this.storeSingleMessage(userId, receiverId, msg, msgType);
+  }
+
+  async sendGroupMessage(params: {
+    message: {
+      senderId: string;
+      roomId: string;
+      msg: any;
+      msgType: MsgType;
+    };
+    client: Socket;
+  }) {
+    const { message } = params;
+    try {
+      await this.chatService.getGroupInfo(message.roomId);
+
+      // send to all user in group
+      params.client.to(message.roomId).emit('message', {
+        ...message,
+        type: 'group',
+      });
+
+      this.chatService.saveGroupMessage({
+        roomId: message.roomId,
+        senderId: message.senderId,
+        content: message.msg,
+        msgType: message.msgType,
+        atPersonId: '',
+      });
+    } catch (error) {
+      params.client.emit('message', error);
+    }
   }
 
   joinRoom(client: Socket, data: JoinRoom) {

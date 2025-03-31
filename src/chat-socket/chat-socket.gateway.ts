@@ -86,6 +86,7 @@ export class ChatSocketGateway {
         msgType: payload.msgType,
       });
       return 'success';
+    } else if (payload.type === 'group') {
     }
     // this.server.to(payload.roomId).except(client.id).emit('message', payload); // 使用 server 进行广播
     // client.to(payload.roomId).emit('message', payload); // 使用 client 进行广播
