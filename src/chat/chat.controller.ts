@@ -28,7 +28,7 @@ export class ChatController {
   }
 
   // 获取单聊聊天记录
-  @Post('/getChatHistory')
+  @Post('/getSingleChatHistory')
   async getChatHistory(
     @Body() data: ChatHistoryPayload,
     @Req() req: Request & { user: { id: string; username: string } },
