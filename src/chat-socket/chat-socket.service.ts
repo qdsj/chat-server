@@ -86,7 +86,7 @@ export class ChatSocketService {
 
   // storeGroupMessage(userId: string, roomId: string, msg: any) {}
   getClientIdByUserId(userId: string) {
-    return userToClient[userId].id;
+    return userToClient[userId]?.id;
   }
   async sendMessage(params: {
     client: Socket;
@@ -104,8 +104,13 @@ export class ChatSocketService {
       msgType,
       type: 'person',
     };
+
     // send to receiver
-    client.to(this.getClientIdByUserId(receiverId)).emit('message', message);
+    const clientId = this.getClientIdByUserId(receiverId);
+    if (!clientId) {
+      throw new Error('请尝试重新登陆');
+    }
+    client.to(clientId).emit('message', message);
     // send to client
     client.emit('message', message);
     await this.storeSingleMessage(userId, receiverId, msg, msgType);

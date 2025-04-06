@@ -76,33 +76,37 @@ export class ChatSocketGateway {
     @MessageBody() payload: SendPayload,
     @ConnectedSocket() client: Socket,
   ) {
-    console.log('receive: ', payload);
-    if (payload.type === 'person') {
-      await this.chatSocketService.sendMessage({
-        client,
-        userId: client.data.user.id,
-        receiverId: payload.roomId,
-        msg: payload.msg || '',
-        msgType: payload.msgType,
-      });
-      return 'success';
-    } else if (payload.type === 'group') {
-      this.chatSocketService.sendGroupMessage({
-        client,
-        message: {
-          senderId: client.data.user.id,
-          roomId: payload.roomId,
+    try {
+      console.log('receive: ', payload);
+      if (payload.type === 'person') {
+        await this.chatSocketService.sendMessage({
+          client,
+          userId: client.data.user.id,
+          receiverId: payload.roomId,
           msg: payload.msg || '',
           msgType: payload.msgType,
-        },
-      });
-      return 'success';
-    }
-    // this.server.to(payload.roomId).except(client.id).emit('message', payload); // 使用 server 进行广播
-    // client.to(payload.roomId).emit('message', payload); // 使用 client 进行广播
+        });
+        return 'success';
+      } else if (payload.type === 'group') {
+        this.chatSocketService.sendGroupMessage({
+          client,
+          message: {
+            senderId: client.data.user.id,
+            roomId: payload.roomId,
+            msg: payload.msg || '',
+            msgType: payload.msgType,
+          },
+        });
+        return 'success';
+      }
+      // this.server.to(payload.roomId).except(client.id).emit('message', payload); // 使用 server 进行广播
+      // client.to(payload.roomId).emit('message', payload); // 使用 client 进行广播
 
-    // 返回给发送方
-    return 'not support type';
+      // 返回给发送方
+      return 'not support type';
+    } catch (error) {
+      return error.message;
+    }
   }
 
   @SubscribeMessage('removeChatSocket')
