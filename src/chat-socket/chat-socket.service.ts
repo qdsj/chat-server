@@ -107,10 +107,11 @@ export class ChatSocketService {
 
     // send to receiver
     const clientId = this.getClientIdByUserId(receiverId);
-    if (!clientId) {
-      throw new Error('请尝试重新登陆');
+    if (clientId) {
+      // throw new Error('请尝试重新登陆');
+      console.log('发送者没有登陆');
+      client.to(clientId).emit('message', message);
     }
-    client.to(clientId).emit('message', message);
     // send to client
     client.emit('message', message);
     await this.storeSingleMessage(userId, receiverId, msg, msgType);
