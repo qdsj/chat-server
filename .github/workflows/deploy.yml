@@ -87,4 +87,6 @@ jobs:
               -e DB_DATABASE='authqdsj' \
               -e PORT=${{ env.port }} \
               -e SOCKET_PORT=${{ env.socketPort }} \
+              -e OSS_ACCESS_KEY=${{ secrets.OSS_ACCESS_KEY }} \
+              -e OSS_ACCESS_KEY_SECRET=${{ secrets.OSS_ACCESS_KEY_SECRET }} \
               zenoschen/${{ env.dockerName }}:${{ env.tag }}
