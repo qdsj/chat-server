@@ -31,17 +31,42 @@ export class UserController {
   // get post delete put
   @Get('/findUserByName')
   async findUserByName(@Query('username') username: string) {
-    if (!username) return { data: null };
-    const params = { username };
-    const result = await this.userService.findUserByNameOrEmail(params);
-    return { data: result };
+    try {
+      if (!username) return { data: null };
+      const params = { username };
+      const result = await this.userService.findUserByNameOrEmail(params);
+
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: result,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
   }
   @Get('/findUserByEmail')
   async findUserByEmail(@Query('email') email: string) {
-    if (!email) return { data: null };
-    const params = { email };
-    const result = await this.userService.findUserByNameOrEmail(params);
-    return { data: result };
+    try {
+      if (!email) return { data: null };
+      const params = { email };
+      const result = await this.userService.findUserByNameOrEmail(params);
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: result,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
   }
 
   @Get('/getFriendList')
@@ -92,11 +117,12 @@ export class UserController {
     @Body() data: AddFriend,
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
-    if (!data.friendId || !data.requestMessage) {
-      throw new BadRequestException('friendId and requestMessage are required');
-    }
-
     try {
+      if (!data.friendId || !data.requestMessage) {
+        throw new BadRequestException(
+          'friendId and requestMessage are required',
+        );
+      }
       const res = await this.userService.addFriend(
         req.user.id,
         data.friendId,
@@ -108,7 +134,11 @@ export class UserController {
         data: res,
       };
     } catch (error) {
-      throw new BadRequestException(error.message);
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
     }
   }
 
