@@ -26,6 +26,11 @@ export const getDataBaseConfig = (configService: ConfigService) => {
     synchronize: true,
     poolSize: 5,
     logging: false,
+    waitForConnections: true,
+    connectTimeout: 60000,
+    idleTimeout: 60000,
+    retryAttempts: 5,
+    retryDelay: 3000,
     connectorPackage: 'mysql2',
     extra: {
       authPlugins: 'sha256_password',
