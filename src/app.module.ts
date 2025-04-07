@@ -12,6 +12,7 @@ import { AuthServerAuthGuard } from './guards/authService.auth';
 import { JwtAuthGuard } from './guards/jwt.auth';
 import { AuthServerConfig } from './microService/AuthServer';
 import { UserModule } from './user/user.module';
+import { OssModule } from './oss/oss.module';
 
 @Global()
 @Module({
@@ -35,10 +36,11 @@ import { UserModule } from './user/user.module';
     }),
     ChatModule,
     UserModule,
+    OssModule,
     ClientsModule.registerAsync([AuthServerConfig()]),
   ],
   controllers: [AppController],
   providers: [AppService, JwtAuthGuard, AuthServerAuthGuard],
-  exports: [ClientsModule],
+  exports: [ClientsModule, JwtAuthGuard, AuthServerAuthGuard],
 })
 export class AppModule {}
