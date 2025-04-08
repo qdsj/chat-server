@@ -137,6 +137,11 @@ export class ChatSocketService {
         type: 'group',
       });
 
+      params.client.emit('message', {
+        ...message,
+        type: 'group',
+      });
+
       this.chatService.saveGroupMessage({
         roomId: message.roomId,
         senderId: message.senderId,
