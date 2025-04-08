@@ -1,20 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Socket } from 'socket.io';
+import { ChatService } from 'src/chat/chat.service';
 import { generateRoomId } from 'src/util';
 import { Repository } from 'typeorm';
+import { ChatRoom } from '../chat/entities/chat-room-entity';
+import {
+  MsgType,
+  SingleChatMsg,
+} from '../chat/entities/single-chat-msg-entity';
+import { UserRoomShip } from '../chat/entities/user-room-ship.entity';
 import {
   ConnectedServer,
   JoinRoom,
   SendPayloadToClient,
 } from './dto/create-chat-socket.dto';
-import { ChatRoom } from '../chat/entities/chat-room-entity';
-import {
-  SingleChatMsg,
-  MsgType,
-} from '../chat/entities/single-chat-msg-entity';
-import { UserRoomShip } from '../chat/entities/user-room-ship.entity';
-import { ChatService } from 'src/chat/chat.service';
 const userToClient = {};
 const clientToUser = {};
 const onlineSocket = new Map();
@@ -109,11 +109,12 @@ export class ChatSocketService {
     const clientId = this.getClientIdByUserId(receiverId);
     if (clientId) {
       // throw new Error('请尝试重新登陆');
+      client.to(clientId).emit('message', { ...message, roomId: userId });
+    } else {
       console.log('发送者没有登陆');
-      client.to(clientId).emit('message', message);
     }
     // send to client
-    client.emit('message', message);
+    client.emit('message', { ...message, roomId: receiverId });
     await this.storeSingleMessage(userId, receiverId, msg, msgType);
   }
 
