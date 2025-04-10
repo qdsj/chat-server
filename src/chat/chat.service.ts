@@ -14,6 +14,7 @@ import { ChatRoomInfo } from './dto/chat.dto';
 import { User } from './dto/user.dto';
 import { GroupChatMsg } from './entities/group-chat-msg-entity';
 import { OpenWindowTime } from './entities/open-window-time.entity';
+import { GROUP_AVATAR } from 'src/constant/img';
 
 @Injectable()
 export class ChatService {
@@ -153,7 +154,7 @@ export class ChatService {
       {
         name: groupName,
         description: '',
-        avatar: '',
+        avatar: GROUP_AVATAR,
         type: 'group',
       },
     ]);
@@ -377,7 +378,9 @@ export class ChatService {
     if (!isHasAuth) throw new HttpException('没有权限', HttpStatus.BAD_REQUEST);
     const roomId = params.roomId;
 
-    const chatRoomInfo = this.chatRoomRepository.findOneBy({ id: roomId });
+    const chatRoomInfo = await this.chatRoomRepository.findOneBy({
+      id: roomId,
+    });
     if (!chatRoomInfo)
       throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
     delete params.userId;
@@ -385,7 +388,11 @@ export class ChatService {
     if ('id' in params) {
       delete params.id;
     }
-    return await this.chatRoomRepository.update(roomId, { ...params });
+    return await this.chatRoomRepository.update(roomId, {
+      avatar: params.avatar || chatRoomInfo.avatar || GROUP_AVATAR,
+      description: params.description || chatRoomInfo.description,
+      name: params.name || chatRoomInfo.name,
+    });
   }
 
   // 解散群聊

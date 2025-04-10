@@ -46,6 +46,8 @@ export class AppController {
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
     try {
+      if (!data || Object.keys(data).length === 0)
+        throw new BadRequestException('data is not valid');
       const _data = await this.appService.updateUserInfo(req.user.id, data);
       return {
         status: HttpStatus.OK,
