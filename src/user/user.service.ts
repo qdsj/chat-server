@@ -1,11 +1,11 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository } from 'typeorm';
-import { Friends, FriendShipType } from './entities/friends.entity';
 import { ChatRoom } from 'src/chat/entities/chat-room-entity';
 import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
 import { generateRoomId } from 'src/util';
+import { Not, Repository } from 'typeorm';
+import { Friends, FriendShipType } from './entities/friends.entity';
 
 @Injectable()
 export class UserService {

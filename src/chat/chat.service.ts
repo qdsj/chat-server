@@ -445,4 +445,7 @@ export class ChatService {
       }),
     ).then((res) => res.filter(Boolean)) as any;
   }
+
+  // 获取会话列表
+  getSessionList() {}
 }
