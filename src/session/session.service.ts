@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { OpenWindowTime } from 'src/chat/entities/open-window-time.entity';
 import { SessionList } from 'src/chat/entities/session.entity';
 import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
 import { Friends } from 'src/user/entities/friends.entity';
@@ -16,6 +17,9 @@ export class SessionService {
 
   @InjectRepository(UserRoomShip)
   private UserRoomShipRepository: Repository<UserRoomShip>;
+
+  @InjectRepository(OpenWindowTime)
+  private OpenWindowTimeRepository: Repository<OpenWindowTime>;
 
   // 增加一个session
   async addSession(params: {
@@ -117,6 +121,19 @@ export class SessionService {
         isDeleted: false,
       },
     });
-    return sessionList;
+    return await Promise.all(
+      sessionList.map(async (item) => {
+        const sessionTime = await this.OpenWindowTimeRepository.findOne({
+          where: {
+            userId: params.user.id,
+            roomId: item.roomId,
+          },
+        });
+        return {
+          ...item,
+          openTime: sessionTime?.openTime || new Date(),
+        };
+      }),
+    );
   }
 }
