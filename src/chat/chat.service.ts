@@ -119,11 +119,13 @@ export class ChatService {
     const roomId = generateRoomId(user.id, friendId);
 
     const res = await this.singleChatMsgRepository.find({ where: { roomId } });
-    return res.map((item) => {
-      item.roomId = friendId;
-      (item as any).type = 'person';
-      return item;
-    });
+    return res
+      .map((item) => {
+        item.roomId = friendId;
+        (item as any).type = 'person';
+        return item;
+      })
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 
   // 获取群聊消息记录
@@ -139,10 +141,12 @@ export class ChatService {
       throw new HttpException('您不在该群聊内', HttpStatus.BAD_REQUEST);
     }
     const res = await this.groupChatMsgRepository.find({ where: { roomId } });
-    return res.map((item) => {
-      (item as any).type = 'group';
-      return item;
-    });
+    return res
+      .map((item) => {
+        (item as any).type = 'group';
+        return item;
+      })
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 
   // 保存单聊消息
