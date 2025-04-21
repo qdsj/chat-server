@@ -83,7 +83,12 @@ export class ChatService {
               userId: params.user.id,
               roomId,
             },
-          })) || {}),
+          })) || {
+            userId: params.user.id,
+            roomId,
+            openTime: '',
+            createAt: '',
+          }),
           roomInfo: await (item.type === 'group'
             ? this.chatRoomRepository.findOneBy({ id: roomId })
             : this.chatRoomRepository.findOneBy({ name: roomId })),
