@@ -1,10 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ChatService } from 'src/chat/chat.service';
+import { ChatRoom } from 'src/chat/entities/chat-room-entity';
 import { OpenWindowTime } from 'src/chat/entities/open-window-time.entity';
 import { SessionList } from 'src/chat/entities/session.entity';
 import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
 import { Friends } from 'src/user/entities/friends.entity';
-import { generateRoomId } from 'src/util';
+import { UserService } from 'src/user/user.service';
+import { generateRoomId, getChatRoomIdByUserId } from 'src/util';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -20,6 +23,15 @@ export class SessionService {
 
   @InjectRepository(OpenWindowTime)
   private OpenWindowTimeRepository: Repository<OpenWindowTime>;
+
+  @InjectRepository(ChatRoom)
+  private ChatRoomRepository: Repository<ChatRoom>;
+
+  @Inject(UserService)
+  private userService: UserService;
+
+  @Inject(ChatService)
+  private chatService: ChatService;
 
   // 增加一个session
   async addSession(params: {
@@ -129,9 +141,30 @@ export class SessionService {
             roomId: item.roomId,
           },
         });
+        let userInfo = null,
+          roomInfo = null;
+        if (item.type === 'person') {
+          const friendId = getChatRoomIdByUserId({
+            senderId: params.user.id,
+            roomId: item.roomId,
+          });
+          userInfo = await this.userService.findUserById(friendId);
+        } else {
+          roomInfo = await this.ChatRoomRepository.findOneBy({
+            id: item.roomId,
+          });
+
+          const count = await this.chatService.getGroupMembersCount({
+            roomId: item.roomId,
+            userId: params.user.id,
+          });
+          roomInfo.count = count;
+        }
+
         return {
           ...item,
           openTime: sessionTime?.openTime || new Date(),
+          roomInfo: userInfo || roomInfo,
         };
       }),
     );
