@@ -148,6 +148,8 @@ export class SessionService {
             senderId: params.user.id,
             roomId: item.roomId,
           });
+          console.log('friendId', friendId);
+          console.log('params.user.id', params.user.id);
           userInfo = await this.userService.findUserById(friendId);
         } else {
           roomInfo = await this.ChatRoomRepository.findOneBy({

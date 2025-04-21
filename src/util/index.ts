@@ -7,5 +7,5 @@ export const getChatRoomIdByUserId = (params: {
   roomId: string;
 }) => {
   const { senderId, roomId } = params;
-  return roomId.replace(senderId, '').replace('^-', '').replace('-$', '');
+  return roomId.replace(senderId, '').replace(/^-/, '').replace(/-$/, '');
 };
