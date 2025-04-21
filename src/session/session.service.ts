@@ -60,18 +60,25 @@ export class SessionService {
       },
     });
 
-    if (session) {
+    if (session && session.isDeleted === false) {
       throw new Error('会话已存在');
     }
 
-    // 创建session
-    const newSession = await this.SessionRepository.save({
-      userId: params.user.id,
-      roomId: roomId,
-      type: params.room.type,
-    });
+    if (session && session.isDeleted === true) {
+      // 会话被软删除了
+      session.isDeleted = false;
+      await this.SessionRepository.update(session.id, session);
+      return session;
+    } else {
+      // 创建session
+      const newSession = await this.SessionRepository.save({
+        userId: params.user.id,
+        roomId: roomId,
+        type: params.room.type,
+      });
 
-    return newSession;
+      return newSession;
+    }
   }
 
   // 删除一个session
@@ -91,7 +98,8 @@ export class SessionService {
         roomId: roomId,
       },
     });
-    if (!session) {
+
+    if (!session || session.isDeleted === true) {
       throw new Error('会话不存在');
     }
     // 删除session
