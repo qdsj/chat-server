@@ -1,7 +1,8 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('SessionList')
-export class Session {
+// 表名不能大写
+@Entity('session_list')
+export class SessionList {
   @PrimaryGeneratedColumn('uuid')
   id: string;
   @Column({

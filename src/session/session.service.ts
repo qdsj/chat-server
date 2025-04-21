@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Session } from 'src/chat/entities/session.entity';
+import { SessionList } from 'src/chat/entities/session.entity';
 import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
 import { Friends } from 'src/user/entities/friends.entity';
 import { generateRoomId } from 'src/util';
@@ -8,8 +8,8 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class SessionService {
-  @InjectRepository(Session)
-  private SessionRepository: Repository<Session>;
+  @InjectRepository(SessionList)
+  private SessionRepository: Repository<SessionList>;
 
   @InjectRepository(Friends)
   private FriendRepository: Repository<Friends>;
