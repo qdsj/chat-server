@@ -140,7 +140,7 @@ export class ChatController {
     }
   }
 
-  // 查看聊天窗口
+  // 更新聊天窗口的时间
   @Post('/checkChatWindow')
   async openChatWindow(
     @Body() data: { roomId: string; type: 'person' | 'group' },

@@ -137,20 +137,25 @@ export class SessionService {
       sessionList.map(async (item) => {
         const sessionTime = await this.OpenWindowTimeRepository.findOne({
           where: {
-            userId: params.user.id,
+            userId: item.userId,
             roomId: item.roomId,
           },
         });
+
         let userInfo = null,
-          roomInfo = null;
+          roomInfo = null,
+          roomId = item.roomId;
         if (item.type === 'person') {
           const friendId = getChatRoomIdByUserId({
             senderId: params.user.id,
             roomId: item.roomId,
           });
-          console.log('friendId', friendId);
-          console.log('params.user.id', params.user.id);
+
           userInfo = await this.userService.findUserById(friendId);
+          roomId = getChatRoomIdByUserId({
+            senderId: params.user.id,
+            roomId: item.roomId,
+          });
         } else {
           roomInfo = await this.ChatRoomRepository.findOneBy({
             id: item.roomId,
@@ -165,10 +170,16 @@ export class SessionService {
 
         return {
           ...item,
+          roomId,
           openTime: sessionTime?.openTime || new Date(),
           roomInfo: userInfo || roomInfo,
         };
       }),
-    );
+    ).then((res) => {
+      res.sort((a, b) => {
+        return new Date(b.openTime).getTime() - new Date(a.openTime).getTime();
+      });
+      return res;
+    });
   }
 }

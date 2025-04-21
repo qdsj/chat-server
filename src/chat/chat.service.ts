@@ -52,14 +52,23 @@ export class ChatService {
       roomId,
     });
 
+    console.log('windowTime1', windowTime);
+
     if (!windowTime) {
       windowTime = {
         userId: params.user.id,
         roomId,
       } as any;
+
+      windowTime.openTime = new Date();
+      const result = await this.openWindowTimeRepository.save(windowTime);
+      return result;
     }
 
+    console.log('windowTime2', windowTime);
+
     windowTime.openTime = new Date();
+
     await this.openWindowTimeRepository.update(windowTime.id, windowTime);
 
     return windowTime;
