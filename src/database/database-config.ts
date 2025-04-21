@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { ChatRoom } from 'src/chat/entities/chat-room-entity';
 import { GroupChatMsg } from 'src/chat/entities/group-chat-msg-entity';
 import { OpenWindowTime } from 'src/chat/entities/open-window-time.entity';
+import { Session } from 'src/chat/entities/session.entity';
 import { SingleChatMsg } from 'src/chat/entities/single-chat-msg-entity';
 import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
 import { Friends } from 'src/user/entities/friends.entity';
@@ -15,6 +16,7 @@ export const getDataBaseConfig = (configService: ConfigService) => {
     password: configService.get('DB_PASSWORD'),
     database: configService.get('DB_DATABASE'),
     entities: [
+      Session,
       Friends,
       SingleChatMsg,
       OpenWindowTime,

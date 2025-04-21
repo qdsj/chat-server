@@ -13,6 +13,7 @@ import { JwtAuthGuard } from './guards/jwt.auth';
 import { AuthServerConfig } from './microService/AuthServer';
 import { UserModule } from './user/user.module';
 import { OssModule } from './oss/oss.module';
+import { SessionModule } from './session/session.module';
 
 @Global()
 @Module({
@@ -38,6 +39,7 @@ import { OssModule } from './oss/oss.module';
     UserModule,
     OssModule,
     ClientsModule.registerAsync([AuthServerConfig()]),
+    SessionModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtAuthGuard, AuthServerAuthGuard],
