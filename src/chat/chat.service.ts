@@ -52,20 +52,16 @@ export class ChatService {
       roomId,
     });
 
-    console.log('windowTime1', windowTime);
-
     if (!windowTime) {
       windowTime = {
         userId: params.user.id,
         roomId,
+        openTime: new Date(),
       } as any;
 
-      windowTime.openTime = new Date();
       const result = await this.openWindowTimeRepository.save(windowTime);
       return result;
     }
-
-    console.log('windowTime2', windowTime);
 
     windowTime.openTime = new Date();
 
@@ -150,7 +146,7 @@ export class ChatService {
   }
 
   // 保存单聊消息
-  async saveSingleMessage(params: Omit<SingleChatMsg, 'id' | 'createdAt'>) {
+  async saveSingleMessage(params: Omit<SingleChatMsg, 'id'>) {
     await this.singleChatMsgRepository.save([{ ...params }]);
   }
 
@@ -430,7 +426,7 @@ export class ChatService {
   }
 
   // 添加群消息
-  async saveGroupMessage(params: Omit<GroupChatMsg, 'id' | 'createdAt'>) {
+  async saveGroupMessage(params: Omit<GroupChatMsg, 'id'>) {
     await this.groupChatMsgRepository.save([{ ...params }]);
   }
 

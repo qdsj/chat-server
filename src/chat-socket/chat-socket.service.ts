@@ -79,6 +79,7 @@ export class ChatSocketService {
       receiverId,
       content: msg,
       msgType,
+      createdAt: new Date(),
     });
   }
 
@@ -148,6 +149,7 @@ export class ChatSocketService {
         content: message.msg,
         msgType: message.msgType,
         atPersonId: '',
+        createdAt: new Date(),
       });
     } catch (error) {
       params.client.emit('message', error);
