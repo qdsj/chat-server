@@ -173,7 +173,7 @@ export class ChatService {
       },
     ]);
 
-    console.log('chatRoom', chatRoom);
+    console.log('chatRoom', chatRoom, chatRoom[0]);
 
     // 创建者视为群主
     await this.addGroupMember({
@@ -193,22 +193,24 @@ export class ChatService {
 
   // 添加群成员
   async addGroupMember(params: {
-    user?: User;
+    inviter?: User;
     userId: string;
     roomId: string;
     status?: RoomShipType;
     userType?: RoomUserType;
   }) {
-    const isInRoom = await this.userRoomShipRepository.findOneBy({
-      roomId: params.roomId,
-      userId: params.user.id,
-    });
+    if (params.inviter) {
+      const isInRoom = await this.userRoomShipRepository.findOneBy({
+        roomId: params.roomId,
+        userId: params.inviter.id,
+      });
 
-    if (!isInRoom) {
-      throw new HttpException(
-        params.user.username + ', 您不在该群聊内,无法邀请',
-        HttpStatus.BAD_REQUEST,
-      );
+      if (!isInRoom) {
+        throw new HttpException(
+          params.inviter.username + ', 您不在该群聊内,无法邀请',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
     }
 
     const rowData = await this.userRoomShipRepository.findOneBy({
