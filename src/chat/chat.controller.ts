@@ -324,7 +324,7 @@ export class ChatController {
       if (!data.type) throw new Error('type is required');
       if (data?.type !== 'group') throw new Error('type must be group');
       const res = await this.chatService.addGroupMember({
-        user: req.user,
+        inviter: req.user,
         ...data,
       });
       return {
