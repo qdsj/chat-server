@@ -22,7 +22,6 @@ import {
     origin: '*',
   },
   allowRequest(req, fn) {
-    console.log('req', req.headers);
     fn(null, true);
   },
   // path: '/socket.io/', // 添加正确的路径
