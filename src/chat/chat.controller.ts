@@ -473,6 +473,8 @@ export class ChatController {
       if (!data.roomId) throw new Error('roomId is required');
       if (!data.type) throw new Error('type is required');
       if (data?.type !== 'group') throw new Error('type must be group');
+      if (!data.userId) throw new Error('userId is required');
+
       const res = await this.chatService.setGroupMemberAdmin({
         roomId: data.roomId,
         userId: req.user.id,

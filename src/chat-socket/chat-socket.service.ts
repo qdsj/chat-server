@@ -130,7 +130,9 @@ export class ChatSocketService {
   }) {
     const { message } = params;
     try {
-      await this.chatService.getGroupInfo(message.roomId);
+      await this.chatService.findChatRoomById({
+        id: message.roomId,
+      });
 
       // send to all user in group
       params.client.to(message.roomId).emit('message', {

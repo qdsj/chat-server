@@ -492,10 +492,7 @@ export class ChatService {
     beSetId: string;
     userType: RoomUserType;
   }) {
-    await this.isGroupOwnerOrAdmin({
-      userId: params.userId,
-      roomId: params.roomId,
-    });
+    await this.isGroupOwnerOrAdmin(params);
 
     const rowData = await this.isInGroup({
       userId: params.beSetId,
@@ -504,6 +501,11 @@ export class ChatService {
     if (!rowData) {
       throw new HttpException('用户不在该群内', HttpStatus.BAD_REQUEST);
     }
+
+    if (params.userId === params.beSetId) {
+      throw new HttpException('群主无法变更为其他身份', HttpStatus.BAD_REQUEST);
+    }
+
     return this.userRoomShipRepository.update(rowData.id, {
       userType: params.userType,
     });
@@ -542,6 +544,7 @@ export class ChatService {
     roomId: string;
     beOwnerId: string;
   }) {
+    await this.isGroupOwner(params);
     // 将另一个人设置为群主
     await this.setGroupMemberIdentity({
       userId: params.userId,
@@ -551,8 +554,8 @@ export class ChatService {
     });
 
     // 将自己设置为群成员
-    await this.setGroupMemberIdentity({
-      userId: params.userId,
+    return await this.setGroupMemberIdentity({
+      userId: params.beOwnerId,
       roomId: params.roomId,
       beSetId: params.userId,
       userType: 'member',
