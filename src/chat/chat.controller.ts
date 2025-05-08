@@ -461,4 +461,92 @@ export class ChatController {
       };
     }
   }
+
+  // 设置群管理员
+  @Post('/setGroupAdmin')
+  async setGroupAdmin(
+    @Body()
+    data: { roomId: string; type: 'person' | 'group'; userId: string },
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      if (!data.roomId) throw new Error('roomId is required');
+      if (!data.type) throw new Error('type is required');
+      if (data?.type !== 'group') throw new Error('type must be group');
+      const res = await this.chatService.setGroupMemberAdmin({
+        roomId: data.roomId,
+        userId: req.user.id,
+        beAdminId: data.userId,
+      });
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+  // 取消群管理员
+  @Post('/cancelGroupAdmin')
+  async cancelGroupAdmin(
+    @Body()
+    data: { roomId: string; type: 'person' | 'group'; userId: string },
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      if (!data.roomId) throw new Error('roomId is required');
+      if (!data.type) throw new Error('type is required');
+      if (data?.type !== 'group') throw new Error('type must be group');
+      const res = await this.chatService.cancelGroupMemberAdmin({
+        roomId: data.roomId,
+        userId: req.user.id,
+        beAdminId: data.userId,
+      });
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+  // 转让群主
+  @Post('/transferGroupOwner')
+  async transferGroupOwner(
+    @Body()
+    data: { roomId: string; type: 'person' | 'group'; userId: string },
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      if (!data.roomId) throw new Error('roomId is required');
+      if (!data.type) throw new Error('type is required');
+      if (data?.type !== 'group') throw new Error('type must be group');
+      const res = await this.chatService.transferGroupOwner({
+        roomId: data.roomId,
+        userId: req.user.id,
+        beOwnerId: data.userId,
+      });
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
 }
