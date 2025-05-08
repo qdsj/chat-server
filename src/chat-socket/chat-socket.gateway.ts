@@ -104,7 +104,11 @@ export class ChatSocketGateway {
       // 返回给发送方
       return 'not support type';
     } catch (error) {
-      return error.message;
+      return {
+        status: 'fail',
+        code: error.status,
+        message: error.message,
+      };
     }
   }
 

@@ -195,10 +195,11 @@ export class UserController {
   ) {
     console.log(data, req.user);
     try {
-      const res = await this.userService.blockFriend(
-        req.user.id,
-        data.friendId,
-      );
+      const res = await this.userService.blockFriend({
+        id: req.user.id,
+        name: req.user.username,
+        receiverId: data.friendId,
+      });
       return {
         status: HttpStatus.OK,
         message: 'success',

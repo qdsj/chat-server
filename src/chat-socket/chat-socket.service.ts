@@ -15,6 +15,7 @@ import {
   JoinRoom,
   SendPayloadToClient,
 } from './dto/create-chat-socket.dto';
+import { UserService } from 'src/user/user.service';
 const userToClient = {};
 const clientToUser = {};
 const onlineSocket = new Map();
@@ -33,6 +34,9 @@ export class ChatSocketService {
 
   @Inject(ChatService)
   private chatService: ChatService;
+
+  @Inject(UserService)
+  private userService: UserService;
 
   async online(client: Socket, userId: string) {
     userToClient[userId] = client;
@@ -96,6 +100,13 @@ export class ChatSocketService {
     msg: any;
     msgType: MsgType;
   }) {
+    // check is friend
+    await this.userService.isFriendShip(
+      params.userId,
+      params.receiverId,
+      'accepted',
+    );
+
     const { client, userId, receiverId, msg, msgType } = params;
     const roomId = generateRoomId(userId, receiverId);
     const message: SendPayloadToClient = {
@@ -109,7 +120,6 @@ export class ChatSocketService {
     // send to receiver
     const clientId = this.getClientIdByUserId(receiverId);
     if (clientId) {
-      // throw new Error('请尝试重新登陆');
       client.to(clientId).emit('message', { ...message, roomId: userId });
     } else {
       console.log('发送者没有登陆');

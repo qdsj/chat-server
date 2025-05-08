@@ -47,8 +47,14 @@ export class UserService {
     return { ...user, friendShip };
   }
 
-  findUserById(id: string) {
-    return this.authService.send('findUserById', id).toPromise();
+  async findUserById(id: string) {
+    const friendObj = await this.authService
+      .send('findUserById', id)
+      .toPromise();
+    if (!friendObj) {
+      throw new BadRequestException('用户不存在');
+    }
+    return friendObj;
   }
 
   async getFriendList(id: string) {
@@ -135,7 +141,7 @@ export class UserService {
     return Promise.all(tasks).then((users) => users.filter(Boolean));
   }
 
-  isFriendShip(id: string, receiverId: string, status?: FriendShipType) {
+  async isFriendShip(id: string, receiverId: string, status?: FriendShipType) {
     const whereArr = [
       {
         requesterId: id,
@@ -151,7 +157,13 @@ export class UserService {
         item.status = status;
       });
     }
-    return this.friendsRepository.findOneBy(whereArr);
+    const friendObj = await this.friendsRepository.findOneBy(whereArr);
+    if (!friendObj) {
+      throw new BadRequestException(
+        `${id} 与 ${receiverId} 好友关系:${status}不存在`,
+      );
+    }
+    return friendObj;
   }
 
   async addFriend(
@@ -242,63 +254,34 @@ export class UserService {
     return res;
   }
 
-  async blockFriend(id: string, receiverId: string) {
+  async blockFriend(params: { id: string; name: string; receiverId: string }) {
+    const { id, name, receiverId } = params;
     const friendObj = await this.findUserById(receiverId);
-    if (!friendObj) {
-      throw new BadRequestException('用户不存在');
-    }
-
-    const friendShip = await this.friendsRepository.findOneBy([
-      {
-        requesterId: receiverId,
-        receiverId: id,
-      },
-      {
-        requesterId: id,
-        receiverId: receiverId,
-      },
-    ]);
-
-    if (!friendShip || friendShip.status !== 'accepted') {
-      throw new BadRequestException(`${friendObj.username}与你不是好友关系`);
-    }
+    const friendShip = await this.isFriendShip(id, receiverId, 'accepted');
     friendShip.status = 'blocked';
     friendShip.blockerId = id;
     const res = await this.friendsRepository.save(friendShip);
     if (!res) {
       throw new Error('拉黑失败');
     }
-    return res;
+    return {
+      blockerId: id,
+      blockerName: name,
+      beBlocked: receiverId,
+      beBlockedName: friendObj.username,
+    };
   }
 
   async unblockFriend(id: string, receiverId: string) {
-    const friendObj = await this.findUserById(receiverId);
-    if (!friendObj) {
-      throw new BadRequestException('用户不存在');
-    }
+    await this.findUserById(receiverId);
 
-    const friendShip = await this.friendsRepository.findOneBy([
-      {
-        requesterId: receiverId,
-        receiverId: id,
-      },
-      {
-        requesterId: id,
-        receiverId: receiverId,
-      },
-    ]);
+    const friendShip = await this.isFriendShip(id, receiverId, 'blocked');
 
-    if (!friendShip) {
-      throw new BadRequestException(`${friendObj.username}与你不是好友关系`);
-    }
-    if (friendShip.status !== 'blocked') {
-      throw new BadRequestException(`${friendObj.username}没有被你拉黑`);
-    }
     friendShip.status = 'accepted';
-    const res = await this.friendsRepository.save(friendShip);
+    const res = await this.friendsRepository.update(friendShip.id, friendShip);
     if (!res) {
       throw new Error('恢复好友关系失败');
     }
-    return res;
+    return friendShip;
   }
 }

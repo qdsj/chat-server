@@ -8,6 +8,7 @@ import { SingleChatMsg } from '../chat/entities/single-chat-msg-entity';
 import { UserRoomShip } from '../chat/entities/user-room-ship.entity';
 import { ChatSocketGateway } from './chat-socket.gateway';
 import { ChatSocketService } from './chat-socket.service';
+import { UserModule } from 'src/user/user.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ChatSocketService } from './chat-socket.service';
       OpenWindowTime,
     ]),
     ChatModule,
+    UserModule,
   ],
   providers: [ChatSocketGateway, ChatSocketService],
 })
