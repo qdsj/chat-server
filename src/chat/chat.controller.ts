@@ -55,6 +55,7 @@ export class ChatController {
     }
   }
 
+  // 创建群聊
   @Post('/createGroupChat')
   async createGroupChat(
     @Body() data: { userId: string[] },
@@ -326,6 +327,126 @@ export class ChatController {
       const res = await this.chatService.addGroupMember({
         inviter: req.user,
         ...data,
+      });
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
+  // 踢人
+  @Post('/kickMember')
+  async kickMember(
+    @Body()
+    data: { roomId: string; type: 'person' | 'group'; userId: string },
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      if (!data.roomId) throw new Error('roomId is required');
+      if (!data.type) throw new Error('type is required');
+      if (data?.type !== 'group') throw new Error('type must be group');
+      const res = await this.chatService.kickGroupMember({
+        roomId: data.roomId,
+        beBlockerId: data.userId,
+        userId: req.user.id,
+      });
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
+  // 同意加入群聊
+  @Post('/agreeJoinGroup')
+  async agreeJoinGroup(
+    @Body()
+    data: {
+      roomId: string;
+      type: 'person' | 'group';
+      userId: string;
+    },
+  ) {
+    try {
+      if (!data.roomId) throw new Error('roomId is required');
+      if (!data.type) throw new Error('type is required');
+      if (data?.type !== 'group') throw new Error('type must be group');
+      const res = await this.chatService.agreeJoinGroup({
+        roomId: data.roomId,
+        userId: data.userId,
+      });
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
+  // 退出群聊
+  @Post('/quitGroup')
+  async quitGroup(
+    @Body()
+    data: { roomId: string; type: 'person' | 'group' },
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      if (!data.roomId) throw new Error('roomId is required');
+      if (!data.type) throw new Error('type is required');
+      if (data?.type !== 'group') throw new Error('type must be group');
+      const res = await this.chatService.quitGroup({
+        roomId: data.roomId,
+        userId: req.user.id,
+      });
+      return {
+        status: HttpStatus.OK,
+        message: 'success',
+        data: res,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
+  // 解散群聊
+  @Post('/dissolveGroup')
+  async dissolveGroup(
+    @Body()
+    data: { roomId: string; type: 'person' | 'group' },
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
+    try {
+      if (!data.roomId) throw new Error('roomId is required');
+      if (!data.type) throw new Error('type is required');
+      if (data?.type !== 'group') throw new Error('type must be group');
+      const res = await this.chatService.dismissGroup({
+        roomId: data.roomId,
+        userId: req.user.id,
       });
       return {
         status: HttpStatus.OK,

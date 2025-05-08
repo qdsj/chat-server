@@ -233,25 +233,44 @@ export class ChatService {
     ]);
   }
 
-  // 同意加入群聊
-  async agreeJoinGroup(params: { userId: string; roomId: string }) {
-    // 找到群关系 rowData
-    const rowData = await this.userRoomShipRepository.findOneBy({
+  // 检查是否在群聊内
+  isInGroup(params: { userId: string; roomId: string }) {
+    return this.userRoomShipRepository.findOneBy({
       roomId: params.roomId,
       userId: params.userId,
     });
-
-    if (!rowData) {
-      throw new HttpException('未被邀请加入该群', HttpStatus.BAD_REQUEST);
-    }
-
-    // 将群关系设置为 accepted
-    rowData.status = 'accepted';
-    await this.userRoomShipRepository.save(rowData);
-    return true;
   }
 
-  // 拒绝加入群聊
+  // 检查群聊状态
+  async updateGroupStatus(params: {
+    userId: string;
+    roomId: string;
+    status: RoomShipType;
+  }) {
+    const { userId, roomId, status } = params;
+    const rowData = await this.isInGroup({ userId, roomId });
+    if (!rowData) {
+      throw new HttpException(
+        userId + ' 未被邀请加入该群',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return this.userRoomShipRepository.update(rowData.id, {
+      status,
+    });
+  }
+
+  // 同意加入群聊
+  async agreeJoinGroup(params: { userId: string; roomId: string }) {
+    return this.addGroupMember({
+      userId: params.userId,
+      roomId: params.roomId,
+      status: 'accepted',
+      userType: 'member',
+    });
+  }
+
+  // 拒绝加入群聊（没有用到）
   async rejectJoinGroup(params: { userId: string; roomId: string }) {
     // 找到群关系 rowData
     const rowData = await this.userRoomShipRepository.findOneBy({
@@ -292,18 +311,25 @@ export class ChatService {
     });
     if (!isHasAuth) throw new HttpException('没有权限', HttpStatus.BAD_REQUEST);
 
-    // 将群关系设置为 rejected
-    rowData1.status = 'blocked';
-    await this.userRoomShipRepository.save(rowData1);
-    return true;
+    return this.userRoomShipRepository.delete(rowData1.id);
   }
 
-  // 是否可以继续免同意拉人
-  async canJoinGroup(params: { userId: string; roomId: string }) {
-    const { roomId, userId } = params;
-    const count = await this.getGroupMembersCount({ roomId, userId });
-    if (count > 3) return false;
-    return true;
+  // 退出群聊
+  async quitGroup(params: { userId: string; roomId: string }) {
+    const { userId, roomId } = params;
+    const rowData = await this.isInGroup({ userId, roomId });
+    if (!rowData) {
+      throw new HttpException(
+        userId + '未被邀请加入该群',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (rowData.userType === 'owner') {
+      throw new HttpException('群主无法退出群聊', HttpStatus.BAD_REQUEST);
+    }
+
+    return this.userRoomShipRepository.delete(rowData.id);
   }
 
   // 获取群成员的信息
@@ -344,7 +370,7 @@ export class ChatService {
   // 获取群聊基本信息
   async getGroupInfo(roomId: string) {
     const res = await this.chatRoomRepository.findOne({
-      where: { id: roomId },
+      where: { id: roomId, deleted: false },
     });
 
     if (!res) throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
@@ -359,9 +385,11 @@ export class ChatService {
       userId: params.userId,
     });
 
-    console.log('rowData', rowData);
     if (!rowData) {
-      throw new HttpException('不在该群内', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        `${params.userId}不在该群内，或${params.roomId}群聊不存在`,
+        HttpStatus.BAD_REQUEST,
+      );
     } else if (rowData.userType !== 'admin' && rowData.userType !== 'owner') {
       return false;
     }
@@ -424,7 +452,7 @@ export class ChatService {
     if (!chatRoom)
       throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
     chatRoom.deleted = true;
-    this.chatRoomRepository.save(chatRoom);
+    return this.chatRoomRepository.update(chatRoom.id, chatRoom);
   }
 
   // 添加群消息
@@ -468,6 +496,10 @@ export class ChatService {
       }),
     ).then((res) => res.filter(Boolean)) as any;
   }
+
+  // 设置群成员为管理员
+
+  // 转让群主
 
   // 获取会话列表
   getSessionList() {}
