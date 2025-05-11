@@ -518,8 +518,8 @@ export class ChatService {
             includeDeleted,
           });
 
-          // 没解散的群
-          if (info?.type === 'group') {
+          // 过滤已退出的群
+          if (info?.type === 'group' && item.status === 'accepted') {
             (info as any).roomShip = item;
             return info;
           }
