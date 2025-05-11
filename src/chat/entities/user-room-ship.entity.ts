@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-export type RoomShipType = 'pending' | 'accepted' | 'rejected' | 'blocked';
+export type RoomShipType = 'accepted' | 'blocked';
 
 export type RoomUserType = 'user' | 'owner' | 'admin' | 'member';
 @Entity('user_room_ship')

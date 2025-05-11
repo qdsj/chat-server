@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChatRoom } from 'src/chat/entities/chat-room-entity';
 import { SingleChatMsg } from 'src/chat/entities/single-chat-msg-entity';
@@ -199,6 +205,7 @@ export class ChatService {
     status?: RoomShipType;
     userType?: RoomUserType;
   }) {
+    // 有邀请者的情况
     if (params.inviter) {
       const isInRoom = await this.userRoomShipRepository.findOneBy({
         roomId: params.roomId,
@@ -213,13 +220,23 @@ export class ChatService {
       }
     }
 
-    const rowData = await this.userRoomShipRepository.findOneBy({
+    const rowData = await this.isInGroup({
       roomId: params.roomId,
       userId: params.userId,
     });
 
-    if (rowData) {
+    if (rowData && rowData.status == 'accepted') {
       throw new HttpException('已在该群聊内', HttpStatus.BAD_REQUEST);
+    }
+
+    // 检查之前是否被拉黑
+    if (rowData) {
+      return this.updateGroupMemberStatus({
+        roomId: params.roomId,
+        userId: params.userId,
+        status: 'accepted',
+        userType: params?.userType || 'member',
+      });
     }
 
     return await this.userRoomShipRepository.save([
@@ -227,7 +244,7 @@ export class ChatService {
         userId: params.userId,
         roomId: params.roomId,
         type: 'group',
-        status: params?.status || 'accepted',
+        status: 'accepted',
         userType: params?.userType || 'member',
       },
     ]);
@@ -236,13 +253,18 @@ export class ChatService {
   // 检查是否在群聊内
   async isInGroup(params: { userId: string; roomId: string }) {
     await this.findChatRoomById({ id: params.roomId });
-    return this.userRoomShipRepository.findOneBy({
+    const rowData = await this.userRoomShipRepository.findOneBy({
       roomId: params.roomId,
       userId: params.userId,
     });
+
+    if (!rowData)
+      throw new BadRequestException(params.userId + ' 用户不在该该群');
+
+    return rowData;
   }
 
-  // 检查群聊状态
+  // 更新群聊状态
   async updateGroupStatus(params: {
     userId: string;
     roomId: string;
@@ -250,12 +272,7 @@ export class ChatService {
   }) {
     const { userId, roomId, status } = params;
     const rowData = await this.isInGroup({ userId, roomId });
-    if (!rowData) {
-      throw new HttpException(
-        userId + ' 未被邀请加入该群',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+
     return this.userRoomShipRepository.update(rowData.id, {
       status,
     });
@@ -271,21 +288,23 @@ export class ChatService {
     });
   }
 
-  // 拒绝加入群聊（没有用到）
-  async rejectJoinGroup(params: { userId: string; roomId: string }) {
+  // 更新群成员的状态
+  async updateGroupMemberStatus(params: {
+    userId: string;
+    roomId: string;
+    status: RoomShipType;
+    userType?: RoomUserType;
+  }) {
     // 找到群关系 rowData
-    const rowData = await this.userRoomShipRepository.findOneBy({
+    const rowData = await this.isInGroup({
       roomId: params.roomId,
       userId: params.userId,
     });
 
-    if (!rowData) {
-      throw new HttpException('未被邀请加入该群', HttpStatus.BAD_REQUEST);
-    }
-
-    // 将群关系设置为 rejected
-    rowData.status = 'rejected';
-    await this.userRoomShipRepository.save(rowData);
+    // 将群关系设置为 params.status
+    rowData.status = params.status;
+    if (params.userType) rowData.userType = params.userType;
+    await this.userRoomShipRepository.update(rowData.id, rowData);
     return true;
   }
 
@@ -295,41 +314,27 @@ export class ChatService {
     beBlockerId: string;
     roomId: string;
   }) {
-    // 找到被踢出群聊的人群关系 rowData
-    const rowData1 = await this.userRoomShipRepository.findOneBy({
-      roomId: params.roomId,
+    return this.updateGroupMemberStatus({
       userId: params.beBlockerId,
-    });
-
-    if (!rowData1) {
-      throw new HttpException('未被邀请加入该群', HttpStatus.BAD_REQUEST);
-    }
-
-    // 找到踢出群聊的人群关系 rowData
-    await this.isGroupOwnerOrAdmin({
       roomId: params.roomId,
-      userId: params.userId,
+      status: 'blocked',
     });
-
-    return this.userRoomShipRepository.delete(rowData1.id);
   }
 
   // 退出群聊
   async quitGroup(params: { userId: string; roomId: string }) {
     const { userId, roomId } = params;
     const rowData = await this.isInGroup({ userId, roomId });
-    if (!rowData) {
-      throw new HttpException(
-        userId + '未被邀请加入该群',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
 
     if (rowData.userType === 'owner') {
       throw new HttpException('群主无法退出群聊', HttpStatus.BAD_REQUEST);
     }
 
-    return this.userRoomShipRepository.delete(rowData.id);
+    return this.updateGroupMemberStatus({
+      userId,
+      roomId,
+      status: 'blocked',
+    });
   }
 
   // 获取群成员的信息
@@ -359,7 +364,7 @@ export class ChatService {
   async getGroupMembersCount(params: { roomId: string; userId: string }) {
     const { roomId, userId } = params;
     const res = await this.userRoomShipRepository.findOne({
-      where: { roomId, userId },
+      where: { roomId, userId, status: 'accepted' },
     });
 
     if (!res) throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
@@ -430,7 +435,7 @@ export class ChatService {
     return roomData;
   }
 
-  // 解散群聊
+  // 解散群聊--软删除
   async dismissGroup(params: { userId: string; roomId: string }) {
     await this.isGroupOwner({
       userId: params.userId,
@@ -474,7 +479,8 @@ export class ChatService {
       res.map(async (item) => {
         try {
           const info = await this.findChatRoomById({ id: item.roomId });
-          if (info?.type === 'group') {
+          // 没解散的群
+          if (info?.type === 'group' && info.deleted === false) {
             (info as any).roomShip = item;
             return info;
           }
@@ -498,9 +504,6 @@ export class ChatService {
       userId: params.beSetId,
       roomId: params.roomId,
     });
-    if (!rowData) {
-      throw new HttpException('用户不在该群内', HttpStatus.BAD_REQUEST);
-    }
 
     if (params.userId === params.beSetId) {
       throw new HttpException('群主无法变更为其他身份', HttpStatus.BAD_REQUEST);
