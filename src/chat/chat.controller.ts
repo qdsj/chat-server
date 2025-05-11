@@ -298,7 +298,6 @@ export class ChatController {
         userId: req.user.id,
       });
 
-      console.log('res', res);
       return {
         status: HttpStatus.OK,
         message: 'success',

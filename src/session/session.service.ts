@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChatService } from 'src/chat/chat.service';
-import { ChatRoom } from 'src/chat/entities/chat-room-entity';
 import { OpenWindowTime } from 'src/chat/entities/open-window-time.entity';
 import { SessionList } from 'src/chat/entities/session.entity';
 import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
@@ -24,14 +24,13 @@ export class SessionService {
   @InjectRepository(OpenWindowTime)
   private OpenWindowTimeRepository: Repository<OpenWindowTime>;
 
-  @InjectRepository(ChatRoom)
-  private ChatRoomRepository: Repository<ChatRoom>;
-
   @Inject(UserService)
   private userService: UserService;
 
-  @Inject(ChatService)
-  private chatService: ChatService;
+  constructor(
+    @Inject(ChatService)
+    private chatService: ChatService,
+  ) {}
 
   // 增加一个session
   async addSession(params: {
@@ -98,10 +97,12 @@ export class SessionService {
   }
 
   // 删除一个session
+  @OnEvent('session.deleteSession')
   async deleteSession(params: {
     room: { id: string; type: 'person' | 'group' };
     user: { id: string };
   }) {
+    console.log('delete session');
     // 判断session是否存在
     let roomId = params.room.id;
     if (params.room.type === 'person') {
@@ -116,7 +117,9 @@ export class SessionService {
     });
 
     if (!session || session.isDeleted === true) {
-      throw new Error('会话不存在');
+      // throw new Error('会话不存在');
+      console.log('会话不存在');
+      return 'success';
     }
     // 删除session
     session.isDeleted = true;

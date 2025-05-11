@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChatRoom } from 'src/chat/entities/chat-room-entity';
 import { SingleChatMsg } from 'src/chat/entities/single-chat-msg-entity';
@@ -13,6 +14,7 @@ import {
   RoomUserType,
   UserRoomShip,
 } from 'src/chat/entities/user-room-ship.entity';
+import { GROUP_AVATAR } from 'src/constant/img';
 import { UserService } from 'src/user/user.service';
 import { generateRoomId } from 'src/util';
 import { Repository } from 'typeorm';
@@ -20,7 +22,6 @@ import { ChatRoomInfo } from './dto/chat.dto';
 import { User } from './dto/user.dto';
 import { GroupChatMsg } from './entities/group-chat-msg-entity';
 import { OpenWindowTime } from './entities/open-window-time.entity';
-import { GROUP_AVATAR } from 'src/constant/img';
 
 @Injectable()
 export class ChatService {
@@ -41,6 +42,9 @@ export class ChatService {
 
   @Inject(UserService)
   private userService: UserService;
+
+  @Inject(EventEmitter2)
+  private eventEmitter: EventEmitter2;
 
   // 打开聊天窗口
   async openChatWindow(params: {
@@ -133,15 +137,12 @@ export class ChatService {
   // 获取群聊消息记录
   async getGroupChatHistory(params: { roomId: string; userId: string }) {
     const roomId = params.roomId;
-    const userId = params.userId;
+    // const userId = params.userId;
     // userId是否在该群聊内
-    const roomShip = await this.userRoomShipRepository.findOneBy({
-      roomId,
-      userId,
-    });
-    if (!roomShip) {
-      throw new HttpException('您不在该群聊内', HttpStatus.BAD_REQUEST);
-    }
+    // const roomShip = await this.isInGroup({ userId, roomId });
+    // if (!roomShip) {
+    //   throw new HttpException('您不在该群聊内', HttpStatus.BAD_REQUEST);
+    // }
     const res = await this.groupChatMsgRepository.find({ where: { roomId } });
     return res
       .map((item) => {
@@ -318,6 +319,17 @@ export class ChatService {
     });
   }
 
+  deleteSession(params: { roomId: string; userId: string }) {
+    /**
+     * room: { id: string; type: 'person' | 'group' };
+    user: { id: string };
+     */
+    this.eventEmitter.emit('session.deleteSession', {
+      room: { id: params.roomId, type: 'group' },
+      user: { id: params.userId },
+    });
+  }
+
   // 退出群聊
   async quitGroup(params: { userId: string; roomId: string }) {
     const { userId, roomId } = params;
@@ -327,6 +339,7 @@ export class ChatService {
       throw new HttpException('群主无法退出群聊', HttpStatus.BAD_REQUEST);
     }
 
+    await this.deleteSession(params);
     return this.updateGroupMemberStatus({
       userId,
       roomId,
@@ -337,9 +350,7 @@ export class ChatService {
   // 获取群成员的信息
   async getGroupMembersInfo(params: { roomId: string; userId: string }) {
     const { roomId } = params;
-    const res = await this.chatRoomRepository.find({ where: { id: roomId } });
-
-    if (!res) throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
+    await this.findChatRoomById({ id: roomId });
 
     return this.userRoomShipRepository
       .find({
@@ -358,15 +369,17 @@ export class ChatService {
   }
 
   // 获取群成员的数量
-  async getGroupMembersCount(params: { roomId: string; userId: string }) {
-    const { roomId, userId } = params;
-    const res = await this.userRoomShipRepository.findOne({
-      where: { roomId, userId, status: 'accepted' },
+  async getGroupMembersCount(params: {
+    roomId: string;
+    userId: string;
+    includeBlocked?: boolean;
+  }) {
+    const { roomId, includeBlocked = false } = params;
+
+    return this.userRoomShipRepository.countBy({
+      roomId,
+      ...(!includeBlocked && { status: 'accepted' }),
     });
-
-    if (!res) throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
-
-    return this.userRoomShipRepository.countBy({ roomId });
   }
 
   // 检查群成员是否为管理员或群主
@@ -389,7 +402,7 @@ export class ChatService {
     return true;
   }
 
-  // 修改群聊信息
+  /** 修改群聊信息 */
   async updateGroupInfo(params: ChatRoomInfo & { userId: string }) {
     await this.isGroupOwnerOrAdmin({
       userId: params.userId,
@@ -412,13 +425,29 @@ export class ChatService {
     });
   }
 
-  async findChatRoomById(params: { id: string }) {
+  /**
+   * 通过 id 查找群聊
+   * @param {string} id 群聊id
+   * @param {boolean} [includeDeleted=false] 是否包含已删除的群聊
+   * @returns {Promise<ChatRoom>} 群聊对象
+   * @throws {HttpException} 如果群聊不存在，或者已删除
+   */
+  async findChatRoomById(params: { id: string; includeDeleted?: boolean }) {
     const { id } = params;
     const roomData = await this.chatRoomRepository.findOneBy({ id });
     if (!roomData)
       throw new HttpException('群聊不存在', HttpStatus.BAD_REQUEST);
-    if (roomData.deleted)
-      throw new HttpException('群聊已解散', HttpStatus.BAD_REQUEST);
+
+    // 不对删除的群做检查
+    if (
+      (typeof params.includeDeleted == 'boolean' &&
+        params.includeDeleted == false) ||
+      typeof params.includeDeleted == 'undefined'
+    ) {
+      if (roomData.deleted)
+        throw new HttpException('群聊已解散', HttpStatus.BAD_REQUEST);
+    }
+
     return roomData;
   }
 
@@ -442,6 +471,10 @@ export class ChatService {
       id: params.roomId,
     });
     chatRoom.deleted = true;
+
+    // 删除session
+    this.deleteSession(params);
+
     return this.chatRoomRepository.update(chatRoom.id, chatRoom);
   }
 
@@ -461,23 +494,29 @@ export class ChatService {
         })),
       );
       return true;
-    } catch (error) {
-      console.log(error);
+    } catch {
       return false;
     }
   }
 
-  // 获取群列表
-  async getGroupList(userId: string): Promise<ChatRoom[]> {
+  /** 获取群列表，只找未解散的群聊 */
+  async getGroupList(
+    userId: string,
+    includeDeleted = false,
+  ): Promise<ChatRoom[]> {
     const res = await this.userRoomShipRepository.find({ where: { userId } });
     if (res.length === 0) return [];
 
     return Promise.all(
       res.map(async (item) => {
         try {
-          const info = await this.findChatRoomById({ id: item.roomId });
+          const info = await this.findChatRoomById({
+            id: item.roomId,
+            includeDeleted,
+          });
+
           // 没解散的群
-          if (info?.type === 'group' && info.deleted === false) {
+          if (info?.type === 'group') {
             (info as any).roomShip = item;
             return info;
           }
@@ -561,7 +600,4 @@ export class ChatService {
       userType: 'member',
     });
   }
-
-  // 获取会话列表
-  getSessionList() {}
 }

@@ -14,6 +14,7 @@ import { AuthServerConfig } from './microService/AuthServer';
 import { UserModule } from './user/user.module';
 import { OssModule } from './oss/oss.module';
 import { SessionModule } from './session/session.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Global()
 @Module({
@@ -40,6 +41,10 @@ import { SessionModule } from './session/session.module';
     OssModule,
     ClientsModule.registerAsync([AuthServerConfig()]),
     SessionModule,
+    EventEmitterModule.forRoot({
+      wildcard: true,
+      delimiter: '.',
+    }),
   ],
   controllers: [AppController],
   providers: [AppService, JwtAuthGuard, AuthServerAuthGuard],
