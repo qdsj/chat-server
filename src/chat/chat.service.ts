@@ -179,8 +179,6 @@ export class ChatService {
       },
     ]);
 
-    console.log('chatRoom', chatRoom, chatRoom[0]);
-
     // 创建者视为群主
     await this.addGroupMember({
       userId: params.userId,
@@ -220,34 +218,33 @@ export class ChatService {
       }
     }
 
-    const rowData = await this.isInGroup({
-      roomId: params.roomId,
-      userId: params.userId,
-    });
+    try {
+      const rowData = await this.isInGroup({
+        roomId: params.roomId,
+        userId: params.userId,
+      });
+      if (rowData.status == 'accepted') {
+        throw new HttpException('已在该群聊内', HttpStatus.BAD_REQUEST);
+      }
 
-    if (rowData && rowData.status == 'accepted') {
-      throw new HttpException('已在该群聊内', HttpStatus.BAD_REQUEST);
-    }
-
-    // 检查之前是否被拉黑
-    if (rowData) {
+      // 之前被拉黑
       return this.updateGroupMemberStatus({
         roomId: params.roomId,
         userId: params.userId,
         status: 'accepted',
         userType: params?.userType || 'member',
       });
+    } catch {
+      return await this.userRoomShipRepository.save([
+        {
+          userId: params.userId,
+          roomId: params.roomId,
+          type: 'group',
+          status: 'accepted',
+          userType: params?.userType || 'member',
+        },
+      ]);
     }
-
-    return await this.userRoomShipRepository.save([
-      {
-        userId: params.userId,
-        roomId: params.roomId,
-        type: 'group',
-        status: 'accepted',
-        userType: params?.userType || 'member',
-      },
-    ]);
   }
 
   // 检查是否在群聊内
@@ -259,7 +256,7 @@ export class ChatService {
     });
 
     if (!rowData)
-      throw new BadRequestException(params.userId + ' 用户不在该该群');
+      throw new BadRequestException(params.userId + ' 用户不在该群');
 
     return rowData;
   }
