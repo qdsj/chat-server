@@ -87,7 +87,7 @@ export class ChatSocketGateway {
         });
         return 'success';
       } else if (payload.type === 'group') {
-        this.chatSocketService.sendGroupMessage({
+        await this.chatSocketService.sendGroupMessage({
           client,
           message: {
             senderId: client.data.user.id,

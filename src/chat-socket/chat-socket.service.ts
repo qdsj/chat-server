@@ -139,33 +139,30 @@ export class ChatSocketService {
     client: Socket;
   }) {
     const { message } = params;
-    try {
-      await this.chatService.findChatRoomById({
-        id: message.roomId,
-      });
 
-      // send to all user in group
-      params.client.to(message.roomId).emit('message', {
-        ...message,
-        type: 'group',
-      });
+    await this.chatService.findChatRoomById({
+      id: message.roomId,
+    });
 
-      params.client.emit('message', {
-        ...message,
-        type: 'group',
-      });
+    // send to all user in group
+    params.client.to(message.roomId).emit('message', {
+      ...message,
+      type: 'group',
+    });
 
-      this.chatService.saveGroupMessage({
-        roomId: message.roomId,
-        senderId: message.senderId,
-        content: message.msg,
-        msgType: message.msgType,
-        atPersonId: '',
-        createdAt: new Date(),
-      });
-    } catch (error) {
-      params.client.emit('message', error);
-    }
+    params.client.emit('message', {
+      ...message,
+      type: 'group',
+    });
+
+    this.chatService.saveGroupMessage({
+      roomId: message.roomId,
+      senderId: message.senderId,
+      content: message.msg,
+      msgType: message.msgType,
+      atPersonId: '',
+      createdAt: new Date(),
+    });
   }
 
   joinRoom(client: Socket, data: JoinRoom) {

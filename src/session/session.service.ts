@@ -152,20 +152,26 @@ export class SessionService {
           });
 
           userInfo = await this.userService.findUserById(friendId);
+
           roomId = getChatRoomIdByUserId({
             senderId: params.user.id,
             roomId: item.roomId,
           });
         } else {
-          roomInfo = await this.ChatRoomRepository.findOneBy({
-            id: item.roomId,
-          });
+          try {
+            roomInfo = await this.chatService.findChatRoomById({
+              id: item.roomId,
+            });
 
-          const count = await this.chatService.getGroupMembersCount({
-            roomId: item.roomId,
-            userId: params.user.id,
-          });
-          roomInfo.count = count;
+            // 获取群成员信息
+            const count = await this.chatService.getGroupMembersCount({
+              roomId: item.roomId,
+              userId: params.user.id,
+            });
+            roomInfo.count = count;
+          } catch {
+            return null;
+          }
         }
 
         return {
@@ -175,11 +181,17 @@ export class SessionService {
           roomInfo: userInfo || roomInfo,
         };
       }),
-    ).then((res) => {
-      res.sort((a, b) => {
-        return new Date(b.openTime).getTime() - new Date(a.openTime).getTime();
+    )
+      .then((res) => {
+        return res.filter(Boolean);
+      })
+      .then((res) => {
+        res.sort((a, b) => {
+          return (
+            new Date(b.openTime).getTime() - new Date(a.openTime).getTime()
+          );
+        });
+        return res;
       });
-      return res;
-    });
   }
 }

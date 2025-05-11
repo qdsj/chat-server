@@ -159,9 +159,7 @@ export class UserService {
     }
     const friendObj = await this.friendsRepository.findOneBy(whereArr);
     if (!friendObj) {
-      throw new BadRequestException(
-        `${id} 与 ${receiverId} 好友关系:${status}不存在`,
-      );
+      throw new BadRequestException(`彼此不是好友`);
     }
     return friendObj;
   }
