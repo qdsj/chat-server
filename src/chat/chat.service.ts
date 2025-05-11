@@ -188,8 +188,11 @@ export class ChatService {
       userType: 'owner',
     });
 
+    // 过滤掉创建者本人
+    const memberIds = params.memberIds.filter((item) => item !== params.userId);
+
     await this.addGroupMembers({
-      userIds: params.memberIds,
+      userIds: memberIds,
       roomId: chatRoom[0].id,
     });
 
