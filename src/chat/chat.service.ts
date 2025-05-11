@@ -351,13 +351,18 @@ export class ChatService {
   }
 
   // 获取群成员的信息
-  async getGroupMembersInfo(params: { roomId: string; userId: string }) {
-    const { roomId } = params;
+  async getGroupMembersInfo(params: {
+    roomId: string;
+    userId: string;
+    includeBlocked?: boolean;
+  }) {
+    const { roomId, includeBlocked = false } = params;
     await this.findChatRoomById({ id: roomId });
 
     return this.userRoomShipRepository
       .find({
-        where: [{ roomId }],
+        // 过滤未删除的人
+        where: [{ roomId, ...(!includeBlocked && { status: 'accepted' }) }],
       })
       .then((chatRoomShips) => {
         return Promise.all(
