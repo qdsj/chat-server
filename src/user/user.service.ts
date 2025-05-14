@@ -6,6 +6,7 @@ import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
 import { generateRoomId } from 'src/util';
 import { Not, Repository } from 'typeorm';
 import { Friends, FriendShipType } from './entities/friends.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class UserService {
@@ -20,6 +21,9 @@ export class UserService {
 
   @Inject('AUTH_SERVICE')
   private authService: ClientProxy;
+
+  @Inject(EventEmitter2)
+  private eventEmitter: EventEmitter2;
 
   async findUserByNameOrEmail(params: {
     userId: string;
@@ -149,7 +153,12 @@ export class UserService {
     return Promise.all(tasks).then((users) => users.filter(Boolean));
   }
 
-  async isFriendShip(id: string, receiverId: string, status?: FriendShipType) {
+  async isFriendShip(
+    id: string,
+    receiverId: string,
+    status?: FriendShipType,
+    checkIsFriend = true,
+  ) {
     const whereArr = [
       {
         requesterId: id,
@@ -166,7 +175,7 @@ export class UserService {
       });
     }
     const friendObj = await this.friendsRepository.findOneBy(whereArr);
-    if (!friendObj) {
+    if (checkIsFriend && !friendObj) {
       throw new BadRequestException(`彼此不是好友`);
     }
     return friendObj;
@@ -180,7 +189,7 @@ export class UserService {
     // check receiverId is Exist
     const friendObj = await this.findUserById(receiverId);
 
-    if (await this.isFriendShip(requesterId, receiverId, undefined)) {
+    if (await this.isFriendShip(requesterId, receiverId, undefined, false)) {
       throw new BadRequestException('请求已发送');
     }
 
@@ -192,6 +201,7 @@ export class UserService {
 
     const res = await this.friendsRepository.save([friendsRecord]);
     if (res.length > 0) {
+      // this.eventEmitter.emit('socket.sendMessageByServer', { receiverId });
       return friendObj; // 只返回业务数据
     }
     throw new Error('添加好友失败'); // 抛出异常而不是返回特定格式
