@@ -15,9 +15,15 @@ export class AppService {
     return this.userServices.findUserById(id);
   }
 
-  updateUserInfo(id, updateUserInfoDto: UserInfoDto) {
-    return this.authService
+  async updateUserInfo(id, updateUserInfoDto: UserInfoDto) {
+    const res = await this.authService
       .send('updateUserInfo', { ...updateUserInfoDto, id })
       .toPromise();
+    if (res.status === 'success') {
+      return this.userServices.findUserById(id);
+    } else {
+      console.log(res);
+      throw res;
+    }
   }
 }
