@@ -1,12 +1,15 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ChatSocketServiceMethodParams } from 'src/chat-socket/chat-socket.service';
+import { ChatServiceMethodParams } from 'src/chat/chat.service';
 import { ChatRoom } from 'src/chat/entities/chat-room-entity';
+import { ServerMsgTypeEnum } from 'src/chat/entities/single-chat-msg-entity';
 import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
 import { generateRoomId } from 'src/util';
 import { Not, Repository } from 'typeorm';
 import { Friends, FriendShipType } from './entities/friends.entity';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class UserService {
@@ -181,30 +184,37 @@ export class UserService {
     return friendObj;
   }
 
-  async addFriend(
-    requesterId: string,
-    receiverId: string,
-    requestMessage: string,
-  ) {
+  async addFriend(params: {
+    requesterName: string;
+    requesterId: string;
+    receiverId: string;
+    requestMessage: string;
+  }) {
+    const { requesterName, requesterId, receiverId, requestMessage } = params;
     // check receiverId is Exist
     const friendObj = await this.findUserById(receiverId);
 
-    if (await this.isFriendShip(requesterId, receiverId, undefined, false)) {
-      throw new BadRequestException('请求已发送');
+    const friendShip = await this.isFriendShip(
+      requesterId,
+      receiverId,
+      null,
+      false,
+    );
+    if (!friendShip) {
+      const friendsRecord = new Friends();
+      friendsRecord.requesterId = requesterId;
+      friendsRecord.receiverId = receiverId;
+      friendsRecord.requestMessage = requestMessage;
+      friendsRecord.status = 'pending';
+      await this.friendsRepository.save([friendsRecord]);
     }
 
-    const friendsRecord = new Friends();
-    friendsRecord.requesterId = requesterId;
-    friendsRecord.receiverId = receiverId;
-    friendsRecord.requestMessage = requestMessage;
-    friendsRecord.status = 'pending';
-
-    const res = await this.friendsRepository.save([friendsRecord]);
-    if (res.length > 0) {
-      // this.eventEmitter.emit('socket.sendMessageByServer', { receiverId });
-      return friendObj; // 只返回业务数据
-    }
-    throw new Error('添加好友失败'); // 抛出异常而不是返回特定格式
+    this.eventEmitter.emit('socket.sendServerMessage', {
+      senderId: receiverId,
+      message: `收到一条来自${requesterName}好友申请`,
+      msgType: ServerMsgTypeEnum['request-friend'],
+    } as ChatSocketServiceMethodParams['sendServerMessage'][0]);
+    return friendObj; // 只返回业务数据O
   }
 
   async getRequestList(id: string) {
@@ -219,8 +229,6 @@ export class UserService {
       ],
     });
 
-    console.log(users);
-
     if (!users) {
       return [];
     }
@@ -229,7 +237,12 @@ export class UserService {
     });
   }
 
-  async agreeFriend(id: string, receiverId: string) {
+  async agreeFriend(params: {
+    id: string;
+    username: string;
+    receiverId: string;
+  }) {
+    const { id, username, receiverId } = params;
     const friendObj = await this.findUserById(receiverId);
     if (!friendObj) {
       throw new BadRequestException('用户不存在');
@@ -249,19 +262,32 @@ export class UserService {
     }
 
     friendShip.status = 'accepted';
-    const res = await this.friendsRepository.save(friendShip);
+    const res = await this.friendsRepository.update(friendShip.id, friendShip);
+
     const roomId = generateRoomId(id, receiverId);
-    this.chatRoomRepository.save({
+
+    await this.eventEmitter.emitAsync('chat.createChatRoom', {
       type: 'person',
       name: roomId,
-      avatar: '',
-      description: `${id}-${receiverId}的单聊聊天室`,
-    });
+    } as ChatServiceMethodParams['createChatRoom'][0]);
 
-    this.userRoomShipRepository.save([
+    await this.userRoomShipRepository.save([
       { roomId: roomId, userId: id },
       { roomId: roomId, userId: receiverId },
     ]);
+
+    await this.eventEmitter.emitAsync('socket.sendServerMessage', {
+      senderId: receiverId,
+      message: `${username}同意了你的好友申请`,
+      msgType: ServerMsgTypeEnum['agree-friend'],
+    } as ChatSocketServiceMethodParams['sendServerMessage'][0]);
+
+    // this.chatRoomRepository.save({
+    //   type: 'person',
+    //   name: roomId,
+    //   avatar: '',
+    //   description: `${id}-${receiverId}的单聊聊天室`,
+    // });
 
     if (!res) {
       throw new Error('同意失败');

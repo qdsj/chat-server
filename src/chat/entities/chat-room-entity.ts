@@ -1,5 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
+export type ChatType = 'person' | 'group';
+
 @Entity('chat_room')
 export class ChatRoom {
   @PrimaryGeneratedColumn('uuid')
@@ -31,7 +33,7 @@ export class ChatRoom {
     type: 'enum',
     enum: ['person', 'group'],
   })
-  type: 'person' | 'group';
+  type: ChatType;
 
   @Column({
     type: 'boolean',

@@ -135,11 +135,12 @@ export class UserController {
           'friendId and requestMessage are required',
         );
       }
-      const res = await this.userService.addFriend(
-        req.user.id,
-        data.friendId,
-        data.requestMessage,
-      );
+      const res = await this.userService.addFriend({
+        requesterName: req.user.username,
+        requesterId: req.user.id,
+        receiverId: data.friendId,
+        requestMessage: data.requestMessage,
+      });
       return {
         status: HttpStatus.OK,
         message: 'success',
@@ -182,10 +183,11 @@ export class UserController {
   ) {
     console.log(data, req.user);
     try {
-      const res = await this.userService.agreeFriend(
-        req.user.id,
-        data.friendId,
-      );
+      const res = await this.userService.agreeFriend({
+        id: req.user.id,
+        username: req.user.username,
+        receiverId: data.friendId,
+      });
       return {
         status: HttpStatus.OK,
         message: 'success',

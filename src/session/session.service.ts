@@ -102,7 +102,6 @@ export class SessionService {
     room: { id: string; type: 'person' | 'group' };
     user: { id: string };
   }) {
-    console.log('delete session');
     // 判断session是否存在
     let roomId = params.room.id;
     if (params.room.type === 'person') {

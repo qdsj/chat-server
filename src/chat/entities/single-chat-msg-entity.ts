@@ -2,6 +2,16 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 export type MsgType = 'text' | 'image' | 'video' | 'audio';
 
+export enum ServerMsgTypeEnum {
+  'request-friend' = 'request-friend',
+  'agree-friend' = 'agree-friend',
+  'enter-group' = 'enter-group',
+  'be-blocked-group' = 'be-blocked-group',
+  'new-message' = 'new-message',
+}
+
+export type ServerMsgType = keyof typeof ServerMsgTypeEnum;
+
 @Entity('single_chat_msg')
 export class SingleChatMsg {
   @PrimaryGeneratedColumn('uuid')

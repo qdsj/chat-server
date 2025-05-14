@@ -5,9 +5,9 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChatRoom } from 'src/chat/entities/chat-room-entity';
+import { ChatRoom, ChatType } from 'src/chat/entities/chat-room-entity';
 import { SingleChatMsg } from 'src/chat/entities/single-chat-msg-entity';
 import {
   RoomShipType,
@@ -155,6 +155,27 @@ export class ChatService {
   // 保存单聊消息
   async saveSingleMessage(params: Omit<SingleChatMsg, 'id'>) {
     await this.singleChatMsgRepository.save([{ ...params }]);
+  }
+
+  // 创建群聊
+  @OnEvent('chat.createChatRoom')
+  async createChatRoom(params: {
+    name: string;
+    avatar?: string;
+    description?: string;
+    type: ChatType;
+  }) {
+    const config: Record<string, string> = {
+      name: params.name,
+      avatar: params.avatar || '',
+      type: params.type,
+    };
+    if (params.type === 'person') {
+      config.description = '单聊聊天室';
+    } else {
+      config.description = params.description || '';
+    }
+    return this.chatRoomRepository.save(config);
   }
 
   // 创建群聊
@@ -609,3 +630,5 @@ export class ChatService {
     });
   }
 }
+
+export type ChatServiceMethodParams = GetClassMethodParams<typeof ChatService>;

@@ -1,21 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { OnEvent } from '@nestjs/event-emitter';
 import { Socket } from 'socket.io';
 import { ChatService } from 'src/chat/chat.service';
+import { UserService } from 'src/user/user.service';
 import { generateRoomId } from 'src/util';
-import { Repository } from 'typeorm';
-import { ChatRoom } from '../chat/entities/chat-room-entity';
 import {
   MsgType,
-  SingleChatMsg,
+  ServerMsgType,
+  ServerMsgTypeEnum,
 } from '../chat/entities/single-chat-msg-entity';
-import { UserRoomShip } from '../chat/entities/user-room-ship.entity';
 import {
   ConnectedServer,
   JoinRoom,
   SendPayloadToClient,
 } from './dto/create-chat-socket.dto';
-import { UserService } from 'src/user/user.service';
 const userToClient = {};
 const clientToUser = {};
 const onlineSocket = new Map();
@@ -23,15 +21,6 @@ const roomMap = new Map();
 
 @Injectable()
 export class ChatSocketService {
-  @InjectRepository(ChatRoom)
-  private chatRoomRepository: Repository<ChatRoom>;
-
-  @InjectRepository(UserRoomShip)
-  private userRoomShipRepository: Repository<UserRoomShip>;
-
-  @InjectRepository(SingleChatMsg)
-  private singleChatMsgRepository: Repository<SingleChatMsg>;
-
   @Inject(ChatService)
   private chatService: ChatService;
 
@@ -88,8 +77,6 @@ export class ChatSocketService {
   }
 
   // 存储群聊信息
-
-  // storeGroupMessage(userId: string, roomId: string, msg: any) {}
   getClientIdByUserId(userId: string) {
     return userToClient[userId]?.id;
   }
@@ -107,26 +94,119 @@ export class ChatSocketService {
       'accepted',
     );
 
-    const { client, userId, receiverId, msg, msgType } = params;
-    const roomId = generateRoomId(userId, receiverId);
-    const message: SendPayloadToClient = {
+    const { userId, receiverId, msg, msgType } = params;
+    // const roomId = generateRoomId(userId, receiverId);
+    const message = {
       msg,
       senderId: userId,
-      roomId,
       msgType,
       type: 'person',
-    };
+    } as SendPayloadToClient;
+
+    await this.storeSingleMessage(userId, receiverId, msg, msgType);
+
+    this.sendMessageToUser({
+      userId: params.userId,
+      message: { ...message, roomId: receiverId },
+    });
+    this.sendMessageToUser({
+      userId: receiverId,
+      message: { ...message, roomId: userId },
+    });
+
+    const userInfo = await this.userService.findUserById(userId);
+    this.sendServerMessage({
+      senderId: receiverId,
+      message: JSON.stringify({
+        title: `你有一条来自${userInfo.username}的消息`,
+        content: msg,
+      }),
+      msgType: ServerMsgTypeEnum['new-message'],
+    });
 
     // send to receiver
-    const clientId = this.getClientIdByUserId(receiverId);
-    if (clientId) {
-      client.to(clientId).emit('message', { ...message, roomId: userId });
-    } else {
-      console.log('发送者没有登陆');
+    // const clientId = this.getClientIdByUserId(receiverId);
+    // if (clientId) {
+    //   client.to(clientId).emit('message', { ...message, roomId: userId });
+    // } else {
+    //   console.log('发送者没有登陆');
+    // }
+    // // send to client
+    // client.emit('message', { ...message, roomId: receiverId });
+  }
+
+  async sendMessageToUser(params: {
+    userId: string;
+    message: { roomId: string; msgType: MsgType | ServerMsgType };
+  }) {
+    const { userId, message } = params;
+    const client = userToClient[userId];
+    console.log('client', userId, message, clientToUser);
+    if (client) {
+      console.log('用户在线', userId);
+      client.emit('message', message);
     }
-    // send to client
-    client.emit('message', { ...message, roomId: receiverId });
-    await this.storeSingleMessage(userId, receiverId, msg, msgType);
+  }
+
+  @OnEvent('socket.sendMessageFakeUser')
+  async sendMessageFakeUser(params: {
+    senderId: string;
+    receiverId: string;
+    type: 'person' | 'group';
+    message: any;
+    msgType: MsgType;
+  }) {
+    const { message, type, senderId, receiverId, msgType } = params;
+    const messageObj = {
+      msg: message,
+      senderId: params.senderId,
+      roomId:
+        type === 'person'
+          ? generateRoomId(params.senderId, params.receiverId)
+          : params.receiverId,
+      msgType: params.msgType,
+      type: params.type,
+    };
+
+    // store message
+
+    if (type === 'person') {
+      await this.storeSingleMessage(
+        senderId,
+        receiverId,
+        message,
+        msgType as MsgType,
+      );
+    } else {
+      await this.storeGroupMessage({
+        senderId,
+        roomId: messageObj.roomId,
+        msg: message,
+        msgType: msgType as MsgType,
+      });
+    }
+
+    // send message to person
+    this.sendMessageToUser({ userId: senderId, message: messageObj });
+    this.sendMessageToUser({ userId: receiverId, message: messageObj });
+  }
+
+  @OnEvent('socket.sendServerMessage')
+  async sendServerMessage(params: {
+    senderId: string;
+    message: any;
+    msgType: ServerMsgType;
+  }) {
+    const { message, senderId, msgType } = params;
+    const messageObj = {
+      senderId: '',
+      roomId: '',
+      msg: message,
+      msgType: msgType,
+      type: 'server',
+    };
+    console.log('sendServerMessage', messageObj);
+    this.sendMessageToUser({ userId: senderId, message: messageObj });
   }
 
   async sendGroupMessage(params: {
@@ -155,11 +235,20 @@ export class ChatSocketService {
       type: 'group',
     });
 
-    this.chatService.saveGroupMessage({
-      roomId: message.roomId,
-      senderId: message.senderId,
-      content: message.msg,
-      msgType: message.msgType,
+    await this.storeGroupMessage(message);
+  }
+
+  storeGroupMessage(params: {
+    roomId: string;
+    senderId: string;
+    msg: string;
+    msgType: MsgType;
+  }) {
+    return this.chatService.saveGroupMessage({
+      roomId: params.roomId,
+      senderId: params.senderId,
+      content: params.msg,
+      msgType: params.msgType,
       atPersonId: '',
       createdAt: new Date(),
     });
@@ -185,3 +274,11 @@ export class ChatSocketService {
     return `This action removes a #${id} chatSocket`;
   }
 }
+
+type MethodParams<T> = T extends (...args: infer P) => any ? P : never;
+
+type ChatSocketServiceMethods = {
+  [K in keyof ChatSocketService]: MethodParams<ChatSocketService[K]>;
+};
+
+export type ChatSocketServiceMethodParams = ChatSocketServiceMethods;
