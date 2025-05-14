@@ -141,7 +141,12 @@ export class UserService {
     return Promise.all(tasks).then((users) => users.filter(Boolean));
   }
 
-  async isFriendShip(id: string, receiverId: string, status?: FriendShipType) {
+  async isFriendShip(
+    id: string,
+    receiverId: string,
+    status?: FriendShipType,
+    checkIsFriend = true,
+  ) {
     const whereArr = [
       {
         requesterId: id,
@@ -158,7 +163,7 @@ export class UserService {
       });
     }
     const friendObj = await this.friendsRepository.findOneBy(whereArr);
-    if (!friendObj) {
+    if (checkIsFriend && !friendObj) {
       throw new BadRequestException(`彼此不是好友`);
     }
     return friendObj;
@@ -172,13 +177,8 @@ export class UserService {
     // check receiverId is Exist
     const friendObj = await this.findUserById(receiverId);
 
-    if (!friendObj) {
-      throw new BadRequestException('好友不存在');
-    }
+    await this.isFriendShip(requesterId, receiverId, undefined, false);
 
-    if (await this.isFriendShip(requesterId, receiverId)) {
-      throw new BadRequestException('已经是好友关系');
-    }
     const friendsRecord = new Friends();
     friendsRecord.requesterId = requesterId;
     friendsRecord.receiverId = receiverId;
