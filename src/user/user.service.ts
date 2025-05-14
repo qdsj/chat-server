@@ -21,7 +21,11 @@ export class UserService {
   @Inject('AUTH_SERVICE')
   private authService: ClientProxy;
 
-  async findUserByNameOrEmail(params: { username?: string; email?: string }) {
+  async findUserByNameOrEmail(params: {
+    userId: string;
+    username?: string;
+    email?: string;
+  }) {
     const user: { id: string } = await this.authService
       .send('findUserByNameOrEmail', params)
       .toPromise();
@@ -33,12 +37,16 @@ export class UserService {
       where: [
         {
           requesterId: user.id,
+          receiverId: params.userId,
         },
         {
           receiverId: user.id,
+          requesterId: params.userId,
         },
       ],
     });
+
+    console.log(friendShip);
 
     if (!friendShip) {
       return { ...user, friendShip: null };
@@ -141,12 +149,7 @@ export class UserService {
     return Promise.all(tasks).then((users) => users.filter(Boolean));
   }
 
-  async isFriendShip(
-    id: string,
-    receiverId: string,
-    status?: FriendShipType,
-    checkIsFriend = true,
-  ) {
+  async isFriendShip(id: string, receiverId: string, status?: FriendShipType) {
     const whereArr = [
       {
         requesterId: id,
@@ -163,7 +166,7 @@ export class UserService {
       });
     }
     const friendObj = await this.friendsRepository.findOneBy(whereArr);
-    if (checkIsFriend && !friendObj) {
+    if (!friendObj) {
       throw new BadRequestException(`彼此不是好友`);
     }
     return friendObj;
@@ -177,7 +180,9 @@ export class UserService {
     // check receiverId is Exist
     const friendObj = await this.findUserById(receiverId);
 
-    await this.isFriendShip(requesterId, receiverId, undefined, false);
+    if (await this.isFriendShip(requesterId, receiverId, undefined)) {
+      throw new BadRequestException('请求已发送');
+    }
 
     const friendsRecord = new Friends();
     friendsRecord.requesterId = requesterId;
@@ -203,6 +208,8 @@ export class UserService {
         },
       ],
     });
+
+    console.log(users);
 
     if (!users) {
       return [];

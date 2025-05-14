@@ -30,11 +30,17 @@ export class UserController {
   // http method
   // get post delete put
   @Get('/findUserByName')
-  async findUserByName(@Query('username') username: string) {
+  async findUserByName(
+    @Query('username') username: string,
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
     try {
       if (!username) return { data: null };
       const params = { username };
-      const result = await this.userService.findUserByNameOrEmail(params);
+      const result = await this.userService.findUserByNameOrEmail({
+        ...params,
+        userId: req.user.id,
+      });
 
       return {
         status: HttpStatus.OK,
@@ -50,11 +56,17 @@ export class UserController {
     }
   }
   @Get('/findUserByEmail')
-  async findUserByEmail(@Query('email') email: string) {
+  async findUserByEmail(
+    @Query('email') email: string,
+    @Req() req: Request & { user: { id: string; username: string } },
+  ) {
     try {
       if (!email) return { data: null };
       const params = { email };
-      const result = await this.userService.findUserByNameOrEmail(params);
+      const result = await this.userService.findUserByNameOrEmail({
+        ...params,
+        userId: req.user.id,
+      });
       return {
         status: HttpStatus.OK,
         message: 'success',
