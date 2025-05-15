@@ -34,13 +34,15 @@ export class ChatSocketGateway {
     private jwtService: JwtService,
   ) {}
 
+  // 实际情况是根本和获取不到服务端的socket实例
+  // 但是通过client也可以做同样的事情
   @WebSocketServer()
   private server: Server;
 
   afterInit(socket: Socket) {
     socket.use(
       WsAuthMiddleware(this.jwtService, (socket) => {
-        console.log('连接成功', socket.id, socket.data);
+        // console.log('连接成功', socket.id, socket.data);
         this.chatSocketService.online(socket, socket.data.user.id);
       }) as any,
     );

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { Socket } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { ChatService } from 'src/chat/chat.service';
 import { UserService } from 'src/user/user.service';
 import { generateRoomId } from 'src/util';
@@ -14,6 +14,7 @@ import {
   JoinRoom,
   SendPayloadToClient,
 } from './dto/create-chat-socket.dto';
+import { WebSocketServer } from '@nestjs/websockets';
 const userToClient = {};
 const clientToUser = {};
 const onlineSocket = new Map();
@@ -27,6 +28,9 @@ export class ChatSocketService {
   @Inject(UserService)
   private userService: UserService;
 
+  @WebSocketServer()
+  private server: Server;
+
   async online(client: Socket, userId: string) {
     userToClient[userId] = client;
     clientToUser[client.id] = userId;
@@ -36,8 +40,9 @@ export class ChatSocketService {
     groupList.forEach((item) => {
       client.join(item.id);
     });
-    // 将群聊内的，在用户打开窗口之后的消息，全部发送给用户
+    // 告诉自己所有的好友，我上线了，这个消息不用存储在数据库中
 
+    // 将群聊内的，在用户打开窗口之后的消息，全部发送给用户
     // 用户发送单聊信息，将信息发送给对方的房间，并将消息放到数据库中
     // 新增两个数据库，一个是单聊信息表，一个打开窗口的时间
     // 用户发送群聊信息，将信息发送给群聊的房间，并将消息放到数据库中
@@ -87,6 +92,7 @@ export class ChatSocketService {
     msg: any;
     msgType: MsgType;
   }) {
+    console.log('this.server: ', this.server);
     // check is friend
     await this.userService.isFriendShip(
       params.userId,
@@ -123,16 +129,6 @@ export class ChatSocketService {
       }),
       msgType: ServerMsgTypeEnum['new-message'],
     });
-
-    // send to receiver
-    // const clientId = this.getClientIdByUserId(receiverId);
-    // if (clientId) {
-    //   client.to(clientId).emit('message', { ...message, roomId: userId });
-    // } else {
-    //   console.log('发送者没有登陆');
-    // }
-    // // send to client
-    // client.emit('message', { ...message, roomId: receiverId });
   }
 
   async sendMessageToUser(params: {
@@ -169,7 +165,6 @@ export class ChatSocketService {
     };
 
     // store message
-
     if (type === 'person') {
       await this.storeSingleMessage(
         senderId,
@@ -177,6 +172,16 @@ export class ChatSocketService {
         message,
         msgType as MsgType,
       );
+      // send message to person
+      // messageObj.roomId = generateRoomId(senderId, receiverId);
+      this.sendMessageToUser({
+        userId: senderId,
+        message: { ...messageObj, roomId: receiverId },
+      });
+      this.sendMessageToUser({
+        userId: receiverId,
+        message: { ...messageObj, roomId: senderId },
+      });
     } else {
       await this.storeGroupMessage({
         senderId,
@@ -184,11 +189,12 @@ export class ChatSocketService {
         msg: message,
         msgType: msgType as MsgType,
       });
-    }
 
-    // send message to person
-    this.sendMessageToUser({ userId: senderId, message: messageObj });
-    this.sendMessageToUser({ userId: receiverId, message: messageObj });
+      // 发送群消息
+      const client = userToClient[senderId];
+      if (!client) return;
+      client.to(messageObj.roomId).emit('message', messageObj);
+    }
   }
 
   @OnEvent('socket.sendServerMessage')

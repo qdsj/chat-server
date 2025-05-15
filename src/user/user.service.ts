@@ -4,7 +4,6 @@ import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChatSocketServiceMethodParams } from 'src/chat-socket/chat-socket.service';
 import { ChatServiceMethodParams } from 'src/chat/chat.service';
-import { ChatRoom } from 'src/chat/entities/chat-room-entity';
 import { ServerMsgTypeEnum } from 'src/chat/entities/single-chat-msg-entity';
 import { UserRoomShip } from 'src/chat/entities/user-room-ship.entity';
 import { generateRoomId } from 'src/util';
@@ -15,9 +14,6 @@ import { Friends, FriendShipType } from './entities/friends.entity';
 export class UserService {
   @InjectRepository(Friends)
   private friendsRepository: Repository<Friends>;
-
-  @InjectRepository(ChatRoom)
-  private chatRoomRepository: Repository<ChatRoom>;
 
   @InjectRepository(UserRoomShip)
   private userRoomShipRepository: Repository<UserRoomShip>;
@@ -128,7 +124,7 @@ export class UserService {
     });
   }
 
-  // 通过关系列表，获取用户信息
+  /* 通过关系列表，获取用户信息 */
   getUserInfoByList(
     friends: Friends[],
     key: string | ((friend: Friends) => string),
@@ -156,6 +152,7 @@ export class UserService {
     return Promise.all(tasks).then((users) => users.filter(Boolean));
   }
 
+  /* 判断好友关系 */
   async isFriendShip(
     id: string,
     receiverId: string,
@@ -184,6 +181,22 @@ export class UserService {
     return friendObj;
   }
 
+  emitAsync<T>(event: string, data: T) {
+    return this.eventEmitter.emitAsync(event, data);
+  }
+  sendServerMessage(
+    params: ChatSocketServiceMethodParams['sendServerMessage'][0],
+  ) {
+    return this.emitAsync('socket.sendServerMessage', params);
+  }
+
+  sendFakeMessage(
+    params: ChatSocketServiceMethodParams['sendMessageFakeUser'][0],
+  ) {
+    return this.emitAsync('socket.sendMessageFakeUser', params);
+  }
+
+  /* 发出好友申请 */
   async addFriend(params: {
     requesterName: string;
     requesterId: string;
@@ -200,6 +213,7 @@ export class UserService {
       null,
       false,
     );
+    // || friendShip.requesterId !== requesterId
     if (!friendShip) {
       const friendsRecord = new Friends();
       friendsRecord.requesterId = requesterId;
@@ -209,11 +223,11 @@ export class UserService {
       await this.friendsRepository.save([friendsRecord]);
     }
 
-    this.eventEmitter.emit('socket.sendServerMessage', {
+    this.sendServerMessage({
       senderId: receiverId,
       message: `收到一条来自${requesterName}好友申请`,
       msgType: ServerMsgTypeEnum['request-friend'],
-    } as ChatSocketServiceMethodParams['sendServerMessage'][0]);
+    });
     return friendObj; // 只返回业务数据O
   }
 
@@ -237,6 +251,7 @@ export class UserService {
     });
   }
 
+  /* 同意好友申请 */
   async agreeFriend(params: {
     id: string;
     username: string;
@@ -266,32 +281,34 @@ export class UserService {
 
     const roomId = generateRoomId(id, receiverId);
 
-    await this.eventEmitter.emitAsync('chat.createChatRoom', {
-      type: 'person',
-      name: roomId,
-    } as ChatServiceMethodParams['createChatRoom'][0]);
+    // 创建聊天室
+    await this.emitAsync<ChatServiceMethodParams['createChatRoom'][0]>(
+      'chat.createChatRoom',
+      {
+        type: 'person',
+        name: roomId,
+      },
+    );
 
     await this.userRoomShipRepository.save([
       { roomId: roomId, userId: id },
       { roomId: roomId, userId: receiverId },
     ]);
 
-    await this.eventEmitter.emitAsync('socket.sendServerMessage', {
+    this.sendServerMessage({
       senderId: receiverId,
       message: `${username}同意了你的好友申请`,
       msgType: ServerMsgTypeEnum['agree-friend'],
-    } as ChatSocketServiceMethodParams['sendServerMessage'][0]);
+    });
 
-    // this.chatRoomRepository.save({
-    //   type: 'person',
-    //   name: roomId,
-    //   avatar: '',
-    //   description: `${id}-${receiverId}的单聊聊天室`,
-    // });
+    this.sendFakeMessage({
+      senderId: receiverId, // 发送好友申请的一位
+      receiverId: id,
+      type: 'person',
+      msgType: 'text',
+      message: friendShip.requestMessage,
+    });
 
-    if (!res) {
-      throw new Error('同意失败');
-    }
     return res;
   }
 
