@@ -66,7 +66,7 @@ export class ChatController {
       if (!data.userId) throw new Error('userId is required');
 
       const res = await this.chatService.createGroupByAddMembers({
-        userId: user.id,
+        user: user,
         memberIds: data.userId,
       });
 

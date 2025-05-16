@@ -181,9 +181,10 @@ export class ChatService {
 
   // 创建群聊
   async createGroupByAddMembers(params: {
-    userId: string;
+    user: { id: string; username: string };
     memberIds: string[];
   }) {
+    const { id: userId } = params.user;
     const members = await Promise.all(
       params.memberIds.slice(0, 3).map((id) => {
         return this.userService.findUserById(id) as Promise<User>;
@@ -204,7 +205,7 @@ export class ChatService {
 
     // 创建者视为群主
     await this.addGroupMember({
-      userId: params.userId,
+      userId: userId,
       roomId: chatRoom[0].id,
       status: 'accepted',
       userType: 'owner',
@@ -212,11 +213,12 @@ export class ChatService {
     });
 
     // 过滤掉创建者本人
-    const memberIds = params.memberIds.filter((item) => item !== params.userId);
+    const memberIds = params.memberIds.filter((item) => item !== userId);
 
     await this.addGroupMembers({
       userIds: memberIds,
       roomId: chatRoom[0].id,
+      inviter: params.user,
     });
 
     return chatRoom[0];
@@ -234,77 +236,6 @@ export class ChatService {
     params: ChatSocketServiceMethodParams['sendMessageFakeUser'][0],
   ) {
     return this.eventEmitter.emitAsync('socket.sendMessageFakeUser', params);
-  }
-
-  // 添加群成员
-  async addGroupMember(params: {
-    inviter?: User;
-    userId: string;
-    roomId: string;
-    status?: RoomShipType;
-    userType?: RoomUserType;
-    isInfo?: boolean;
-  }) {
-    const { isInfo = true } = params;
-    // 有邀请者的情况
-    if (params.inviter) {
-      const isInRoom = await this.userRoomShipRepository.findOneBy({
-        roomId: params.roomId,
-        userId: params.inviter.id,
-      });
-
-      if (!isInRoom) {
-        throw new HttpException(
-          params.inviter.username + ', 您不在该群聊内,无法邀请',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-    }
-
-    const infoUser = () => {
-      if (!isInfo) return Promise.resolve();
-      return this.sendServerMessage({
-        receiverId: params.userId,
-        message: JSON.stringify({
-          title: '加入新群聊',
-          content: params.inviter.username + '邀请你加入群聊',
-          roomId: params.roomId,
-        }),
-        msgType: 'be-enter-group',
-      });
-    };
-
-    try {
-      const rowData = await this.isInGroup({
-        roomId: params.roomId,
-        userId: params.userId,
-      });
-      if (rowData.status == 'accepted') {
-        throw new HttpException('已在该群聊内', HttpStatus.BAD_REQUEST);
-      }
-      // 通知对方
-      await infoUser();
-
-      // 之前被拉黑
-      return this.updateGroupMemberStatus({
-        roomId: params.roomId,
-        userId: params.userId,
-        status: 'accepted',
-        userType: params?.userType || 'member',
-      });
-    } catch {
-      await infoUser();
-
-      return await this.userRoomShipRepository.save([
-        {
-          userId: params.userId,
-          roomId: params.roomId,
-          type: 'group',
-          status: 'accepted',
-          userType: params?.userType || 'member',
-        },
-      ]);
-    }
   }
 
   // 检查是否在群聊内
@@ -579,18 +510,107 @@ export class ChatService {
   }
 
   // 批量添加群成员
-  async addGroupMembers(params: { userIds: string[]; roomId: string }) {
+  async addGroupMembers(params: {
+    inviter?: User;
+    userIds: string[];
+    roomId: string;
+  }) {
     try {
-      await this.userRoomShipRepository.save(
-        params.userIds.map((userId) => ({
-          userId: userId,
-          roomId: params.roomId,
-          status: 'accepted',
-        })),
-      );
+      await Promise.all([
+        params.userIds.map((id) =>
+          this.addGroupMember({
+            inviter: params.inviter,
+            userId: id,
+            roomId: params.roomId,
+            status: 'accepted',
+          }),
+        ),
+      ]);
+      // await this.userRoomShipRepository.save(
+      //   params.userIds.map((userId) => ({
+      //     userId: userId,
+      //     roomId: params.roomId,
+      //     status: 'accepted',
+      //   })),
+      // );
       return true;
     } catch {
       return false;
+    }
+  }
+
+  // 添加群成员
+  async addGroupMember(params: {
+    inviter?: User;
+    userId: string;
+    roomId: string;
+    status?: RoomShipType;
+    userType?: RoomUserType;
+    isInfo?: boolean;
+  }) {
+    const { isInfo = true } = params;
+    // 有邀请者的情况
+    if (params.inviter) {
+      const isInRoom = await this.userRoomShipRepository.findOneBy({
+        roomId: params.roomId,
+        userId: params.inviter.id,
+      });
+
+      if (!isInRoom) {
+        throw new HttpException(
+          params.inviter.username + ', 您不在该群聊内,无法邀请',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
+
+    const infoUser = () => {
+      if (!isInfo) return Promise.resolve();
+      return this.sendServerMessage({
+        receiverId: params.userId,
+        message: JSON.stringify({
+          title: '加入新群聊',
+          content: params.inviter?.username + '邀请你加入群聊',
+          roomId: params.roomId,
+        }),
+        msgType: 'be-enter-group',
+      });
+    };
+
+    try {
+      const rowData = await this.isInGroup({
+        roomId: params.roomId,
+        userId: params.userId,
+      });
+      if (rowData.status == 'accepted') {
+        throw new HttpException('已在该群聊内', HttpStatus.BAD_REQUEST);
+      }
+
+      // 之前被拉黑
+      const res = await this.updateGroupMemberStatus({
+        roomId: params.roomId,
+        userId: params.userId,
+        status: 'accepted',
+        userType: params?.userType || 'member',
+      });
+
+      // 通知对方
+      await infoUser();
+
+      return res;
+    } catch {
+      const res = await this.userRoomShipRepository.save([
+        {
+          userId: params.userId,
+          roomId: params.roomId,
+          type: 'group',
+          status: 'accepted',
+          userType: params?.userType || 'member',
+        },
+      ]);
+      await infoUser();
+
+      return res;
     }
   }
 
