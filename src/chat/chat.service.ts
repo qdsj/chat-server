@@ -236,7 +236,7 @@ export class ChatService {
   }
 
   // 模拟发送群通知消息
-  sendMessageToGroup(
+  groupSendFakeMessage(
     params: ChatSocketServiceMethodParams['sendMessageFakeUser'][0],
   ) {
     return this.eventEmitter.emitAsync('socket.sendMessageFakeUser', params);
@@ -357,7 +357,7 @@ export class ChatService {
 
     // 告诉群中所有人，这个人退出了
     // TODO: 待测试
-    await this.sendMessageToGroup({
+    await this.groupSendFakeMessage({
       senderId: userId,
       receiverId: roomId,
       message: JSON.stringify({
@@ -518,15 +518,18 @@ export class ChatService {
     inviter?: User;
     userIds: string[];
     roomId: string;
+    isNewRoom?: boolean;
   }) {
+    const { isNewRoom = true } = params;
     try {
       await Promise.all([
-        params.userIds.map((id) =>
+        ...params.userIds.map((id) =>
           this.addGroupMember({
             inviter: params.inviter,
             userId: id,
             roomId: params.roomId,
             status: 'accepted',
+            isNewRoom,
           }),
         ),
       ]);
@@ -544,8 +547,9 @@ export class ChatService {
     status?: RoomShipType;
     userType?: RoomUserType;
     isInfo?: boolean;
+    isNewRoom?: boolean;
   }) {
-    const { isInfo = true } = params;
+    const { isInfo = true, isNewRoom = true } = params;
     // 有邀请者的情况
     if (params.inviter) {
       const isInRoom = await this.userRoomShipRepository.findOneBy({
@@ -563,10 +567,11 @@ export class ChatService {
 
     // 创建群聊频道
     await this.joinRoom({ roomId: params.roomId, userId: params.userId });
-
+    const user = await this.userService.findUserById(params.userId);
     const infoUser = async () => {
       if (!isInfo) return Promise.resolve();
-      return this.sendServerMessage({
+
+      await this.sendServerMessage({
         receiverId: params.userId,
         message: JSON.stringify({
           title: '加入新群聊',
@@ -575,6 +580,35 @@ export class ChatService {
         }),
         msgType: 'be-enter-group',
       });
+      console.log('isNewRoom: ', isNewRoom, params);
+      if (!isNewRoom) {
+        const res = await this.groupSendFakeMessage({
+          senderId: params.userId,
+          receiverId: params.roomId,
+          message: JSON.stringify({
+            title: '新成员加入群聊',
+            content:
+              `${params.inviter?.username}邀请${user.username}` + '加入群聊',
+            roomId: params.roomId,
+          }),
+          type: 'group',
+          msgType: 'server',
+        });
+        if (!res) {
+          await this.groupSendFakeMessage({
+            senderId: params.inviter.id,
+            receiverId: params.roomId,
+            message: JSON.stringify({
+              title: '新成员加入群聊',
+              content:
+                `${params.inviter?.username}邀请${user.username}` + '加入群聊',
+              roomId: params.roomId,
+            }),
+            type: 'group',
+            msgType: 'server',
+          });
+        }
+      }
     };
 
     try {

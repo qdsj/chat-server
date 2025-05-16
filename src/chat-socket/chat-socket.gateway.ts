@@ -36,7 +36,8 @@ export class ChatSocketGateway {
   afterInit(socket: Socket) {
     socket.use(
       WsAuthMiddleware(this.jwtService, (socket) => {
-        // console.log('连接成功', socket.id, socket.data);
+        // console.log('连接成功', socket.id, socket.data, socket);
+
         this.chatSocketService.online(socket, socket.data.user.id);
       }) as any,
     );
@@ -61,6 +62,7 @@ export class ChatSocketGateway {
     @MessageBody() payload: SendPayload,
     @ConnectedSocket() client: Socket,
   ) {
+    console.log(this.server);
     try {
       if (payload.type === 'person') {
         await this.chatSocketService.sendMessage({

@@ -31,6 +31,9 @@ export class ChatSocketService {
   private server: Server;
 
   async online(client: Socket, userId: string) {
+    if (!this.server) {
+      this.server = (client as any).server;
+    }
     userToClient[userId] = client;
     clientToUser[client.id] = userId;
     // 存储用户id和client的配对关系
@@ -146,24 +149,27 @@ export class ChatSocketService {
 
   async groupSendToUser(params: {
     userId: string;
+    isNeedSendSelf?: boolean;
     message: {
       roomId: string;
       type: MsgAimType;
       msgType: MsgType | ServerMsgType;
     };
   }) {
-    const { userId, message } = params;
-    // 发送群消息
-    const client = userToClient[userId];
-    if (!client) return;
-    client.to(message.roomId).except(client.id).emit('message', message);
+    const { userId, message, isNeedSendSelf = true } = params;
+    let temp = this.server.to(message.roomId);
+    if (!isNeedSendSelf) {
+      const client = userToClient[userId];
+      temp = temp.except(client.id);
+    }
+    return temp.emit('message', message);
   }
 
   @OnEvent('socket.sendMessageFakeUser')
   async sendMessageFakeUser(params: {
     senderId: string;
     receiverId: string;
-    type: 'person' | 'group';
+    type: MsgAimType;
     message: any;
     msgType: MsgType;
   }) {
@@ -205,7 +211,7 @@ export class ChatSocketService {
         msgType: msgType as MsgType,
       });
 
-      await this.groupSendToUser({
+      return this.groupSendToUser({
         userId: senderId,
         message: messageObj,
       });

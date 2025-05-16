@@ -322,15 +322,17 @@ export class ChatController {
   @Post('/addGroupMember')
   async addGroupMember(
     @Body()
-    data: { roomId: string; type: 'person' | 'group'; userId: string },
+    data: { roomId: string; type: 'person' | 'group'; userId: string[] },
     @Req() req: Request & { user: { id: string; username: string } },
   ) {
     try {
       if (!data.roomId) throw new Error('roomId is required');
       if (!data.type) throw new Error('type is required');
       if (data?.type !== 'group') throw new Error('type must be group');
-      const res = await this.chatService.addGroupMember({
+      const res = await this.chatService.addGroupMembers({
         inviter: req.user,
+        isNewRoom: false,
+        userIds: data.userId,
         ...data,
       });
       return {
