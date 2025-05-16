@@ -22,6 +22,7 @@ import { ChatRoomInfo } from './dto/chat.dto';
 import { User } from './dto/user.dto';
 import { GroupChatMsg } from './entities/group-chat-msg-entity';
 import { OpenWindowTime } from './entities/open-window-time.entity';
+import { ChatSocketServiceMethodParams } from 'src/chat-socket/chat-socket.service';
 
 @Injectable()
 export class ChatService {
@@ -207,6 +208,7 @@ export class ChatService {
       roomId: chatRoom[0].id,
       status: 'accepted',
       userType: 'owner',
+      isInfo: false,
     });
 
     // 过滤掉创建者本人
@@ -220,6 +222,20 @@ export class ChatService {
     return chatRoom[0];
   }
 
+  // 发送系统消息
+  sendServerMessage(
+    params: ChatSocketServiceMethodParams['sendServerMessage'][0],
+  ) {
+    return this.eventEmitter.emitAsync('socket.sendServerMessage', params);
+  }
+
+  // 模拟发送群通知消息
+  sendMessageToGroup(
+    params: ChatSocketServiceMethodParams['sendMessageFakeUser'][0],
+  ) {
+    return this.eventEmitter.emitAsync('socket.sendMessageFakeUser', params);
+  }
+
   // 添加群成员
   async addGroupMember(params: {
     inviter?: User;
@@ -227,7 +243,9 @@ export class ChatService {
     roomId: string;
     status?: RoomShipType;
     userType?: RoomUserType;
+    isInfo?: boolean;
   }) {
+    const { isInfo = true } = params;
     // 有邀请者的情况
     if (params.inviter) {
       const isInRoom = await this.userRoomShipRepository.findOneBy({
@@ -243,6 +261,19 @@ export class ChatService {
       }
     }
 
+    const infoUser = () => {
+      if (!isInfo) return Promise.resolve();
+      return this.sendServerMessage({
+        receiverId: params.userId,
+        message: JSON.stringify({
+          title: '加入新群聊',
+          content: params.inviter.username + '邀请你加入群聊',
+          roomId: params.roomId,
+        }),
+        msgType: 'enter-group',
+      });
+    };
+
     try {
       const rowData = await this.isInGroup({
         roomId: params.roomId,
@@ -251,6 +282,8 @@ export class ChatService {
       if (rowData.status == 'accepted') {
         throw new HttpException('已在该群聊内', HttpStatus.BAD_REQUEST);
       }
+      // 通知对方
+      await infoUser();
 
       // 之前被拉黑
       return this.updateGroupMemberStatus({
@@ -260,6 +293,8 @@ export class ChatService {
         userType: params?.userType || 'member',
       });
     } catch {
+      await infoUser();
+
       return await this.userRoomShipRepository.save([
         {
           userId: params.userId,
@@ -336,11 +371,22 @@ export class ChatService {
     beBlockerId: string;
     roomId: string;
   }) {
-    return this.updateGroupMemberStatus({
+    const chatRoom = await this.findChatRoomById({ id: params.roomId });
+    const res = await this.updateGroupMemberStatus({
       userId: params.beBlockerId,
       roomId: params.roomId,
       status: 'blocked',
     });
+    await this.sendServerMessage({
+      receiverId: params.beBlockerId,
+      message: JSON.stringify({
+        title: '被踢出群聊',
+        content: '被踢出群聊' + chatRoom.name,
+        roomId: params.roomId,
+      }),
+      msgType: 'be-blocked-group',
+    });
+    return res;
   }
 
   deleteSession(params: { roomId: string; userId: string }) {
@@ -355,8 +401,12 @@ export class ChatService {
   }
 
   // 退出群聊
-  async quitGroup(params: { userId: string; roomId: string }) {
-    const { userId, roomId } = params;
+  async quitGroup(params: {
+    username: string;
+    userId: string;
+    roomId: string;
+  }) {
+    const { userId, roomId, username } = params;
     const rowData = await this.isInGroup({ userId, roomId });
 
     if (rowData.userType === 'owner') {
@@ -364,11 +414,27 @@ export class ChatService {
     }
 
     await this.deleteSession(params);
-    return this.updateGroupMemberStatus({
+    const res = await this.updateGroupMemberStatus({
       userId,
       roomId,
       status: 'blocked',
     });
+
+    // 告诉群中所有人，这个人退出了
+    // TODO: 待测试
+    await this.sendMessageToGroup({
+      senderId: userId,
+      receiverId: roomId,
+      message: JSON.stringify({
+        title: '退出群聊',
+        content: username + '退出群聊',
+        roomId,
+      }),
+      msgType: 'server',
+      type: 'group',
+    });
+
+    return res;
   }
 
   // 获取群成员的信息
@@ -455,7 +521,7 @@ export class ChatService {
   }
 
   /**
-   * 通过 id 查找群聊
+   * 通过 id 查找群聊, 获取群信息
    * @param {string} id 群聊id
    * @param {boolean} [includeDeleted=false] 是否包含已删除的群聊
    * @returns {Promise<ChatRoom>} 群聊对象

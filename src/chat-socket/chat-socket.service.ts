@@ -122,7 +122,7 @@ export class ChatSocketService {
 
     const userInfo = await this.userService.findUserById(userId);
     this.sendServerMessage({
-      senderId: receiverId,
+      receiverId: receiverId,
       message: JSON.stringify({
         title: `你有一条来自${userInfo.username}的消息`,
         content: msg,
@@ -199,11 +199,11 @@ export class ChatSocketService {
 
   @OnEvent('socket.sendServerMessage')
   async sendServerMessage(params: {
-    senderId: string;
+    receiverId: string;
     message: any;
     msgType: ServerMsgType;
   }) {
-    const { message, senderId, msgType } = params;
+    const { message, receiverId: senderId, msgType } = params;
     const messageObj = {
       senderId: '',
       roomId: '',
@@ -211,7 +211,6 @@ export class ChatSocketService {
       msgType: msgType,
       type: 'server',
     };
-    console.log('sendServerMessage', messageObj);
     this.sendMessageToUser({ userId: senderId, message: messageObj });
   }
 

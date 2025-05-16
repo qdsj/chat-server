@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-export type MsgType = 'text' | 'image' | 'video' | 'audio';
+export type MsgType = 'text' | 'image' | 'video' | 'audio' | 'server';
 
 @Entity('group_chat_msg')
 export class GroupChatMsg {

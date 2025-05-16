@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-export type MsgType = 'text' | 'image' | 'video' | 'audio';
+export type MsgType = 'text' | 'image' | 'video' | 'audio' | 'server'; //系统消息
 
 export enum ServerMsgTypeEnum {
   'request-friend' = 'request-friend',

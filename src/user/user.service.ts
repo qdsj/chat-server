@@ -224,7 +224,7 @@ export class UserService {
     }
 
     this.sendServerMessage({
-      senderId: receiverId,
+      receiverId: receiverId,
       message: `收到一条来自${requesterName}好友申请`,
       msgType: ServerMsgTypeEnum['request-friend'],
     });
@@ -296,7 +296,7 @@ export class UserService {
     ]);
 
     this.sendServerMessage({
-      senderId: receiverId,
+      receiverId: receiverId,
       message: `${username}同意了你的好友申请`,
       msgType: ServerMsgTypeEnum['agree-friend'],
     });

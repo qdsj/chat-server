@@ -421,6 +421,7 @@ export class ChatController {
       if (!data.type) throw new Error('type is required');
       if (data?.type !== 'group') throw new Error('type must be group');
       const res = await this.chatService.quitGroup({
+        username: req.user.username,
         roomId: data.roomId,
         userId: req.user.id,
       });
