@@ -6,6 +6,7 @@ export enum ServerMsgTypeEnum {
   'request-friend' = 'request-friend',
   'agree-friend' = 'agree-friend',
   'enter-group' = 'enter-group',
+  'be-enter-group' = 'be-enter-group',
   'be-blocked-group' = 'be-blocked-group',
   'new-message' = 'new-message',
 }

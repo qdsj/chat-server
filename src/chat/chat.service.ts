@@ -270,7 +270,7 @@ export class ChatService {
           content: params.inviter.username + '邀请你加入群聊',
           roomId: params.roomId,
         }),
-        msgType: 'enter-group',
+        msgType: 'be-enter-group',
       });
     };
 
