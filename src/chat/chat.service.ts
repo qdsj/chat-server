@@ -530,13 +530,6 @@ export class ChatService {
           }),
         ),
       ]);
-      // await this.userRoomShipRepository.save(
-      //   params.userIds.map((userId) => ({
-      //     userId: userId,
-      //     roomId: params.roomId,
-      //     status: 'accepted',
-      //   })),
-      // );
       return true;
     } catch {
       return false;

@@ -5,6 +5,7 @@ import { ChatService } from 'src/chat/chat.service';
 import { UserService } from 'src/user/user.service';
 import { generateRoomId } from 'src/util';
 import {
+  MsgAimType,
   MsgType,
   ServerMsgType,
   ServerMsgTypeEnum,
@@ -14,8 +15,8 @@ import {
   SendPayloadToClient,
 } from './dto/create-chat-socket.dto';
 import { WebSocketServer } from '@nestjs/websockets';
-const userToClient = {};
-const clientToUser = {};
+const userToClient = {} as Record<string, Socket>;
+const clientToUser = {} as Record<string, string>;
 const onlineSocket = new Map();
 
 @Injectable()
@@ -90,7 +91,6 @@ export class ChatSocketService {
     msg: any;
     msgType: MsgType;
   }) {
-    console.log('this.server: ', this.server);
     // check is friend
     await this.userService.isFriendShip(
       params.userId,
@@ -109,11 +109,11 @@ export class ChatSocketService {
 
     await this.storeSingleMessage(userId, receiverId, msg, msgType);
 
-    this.sendMessageToUser({
+    this.singleSendToUser({
       userId: params.userId,
       message: { ...message, roomId: receiverId },
     });
-    this.sendMessageToUser({
+    this.singleSendToUser({
       userId: receiverId,
       message: { ...message, roomId: userId },
     });
@@ -129,17 +129,34 @@ export class ChatSocketService {
     });
   }
 
-  async sendMessageToUser(params: {
+  async singleSendToUser(params: {
     userId: string;
-    message: { roomId: string; msgType: MsgType | ServerMsgType };
+    message: {
+      roomId: string;
+      type: MsgAimType;
+      msgType: MsgType | ServerMsgType;
+    };
   }) {
     const { userId, message } = params;
     const client = userToClient[userId];
-    console.log('client', userId, message, clientToUser);
     if (client) {
-      console.log('用户在线', userId);
       client.emit('message', message);
     }
+  }
+
+  async groupSendToUser(params: {
+    userId: string;
+    message: {
+      roomId: string;
+      type: MsgAimType;
+      msgType: MsgType | ServerMsgType;
+    };
+  }) {
+    const { userId, message } = params;
+    // 发送群消息
+    const client = userToClient[userId];
+    if (!client) return;
+    client.to(message.roomId).except(client.id).emit('message', message);
   }
 
   @OnEvent('socket.sendMessageFakeUser')
@@ -172,11 +189,11 @@ export class ChatSocketService {
       );
       // send message to person
       // messageObj.roomId = generateRoomId(senderId, receiverId);
-      this.sendMessageToUser({
+      this.singleSendToUser({
         userId: senderId,
         message: { ...messageObj, roomId: receiverId },
       });
-      this.sendMessageToUser({
+      this.singleSendToUser({
         userId: receiverId,
         message: { ...messageObj, roomId: senderId },
       });
@@ -188,10 +205,10 @@ export class ChatSocketService {
         msgType: msgType as MsgType,
       });
 
-      // 发送群消息
-      const client = userToClient[senderId];
-      if (!client) return;
-      client.to(messageObj.roomId).emit('message', messageObj);
+      await this.groupSendToUser({
+        userId: senderId,
+        message: messageObj,
+      });
     }
   }
 
@@ -207,9 +224,9 @@ export class ChatSocketService {
       roomId: '',
       msg: message,
       msgType: msgType,
-      type: 'server',
+      type: 'server' as MsgAimType,
     };
-    this.sendMessageToUser({ userId: senderId, message: messageObj });
+    this.singleSendToUser({ userId: senderId, message: messageObj });
   }
 
   async sendGroupMessage(params: {
@@ -223,7 +240,7 @@ export class ChatSocketService {
   }) {
     const { message } = params;
 
-    await this.chatService.findChatRoomById({
+    const room = await this.chatService.findChatRoomById({
       id: message.roomId,
     });
 
@@ -239,6 +256,22 @@ export class ChatSocketService {
     });
 
     await this.storeGroupMessage(message);
+
+    await this.groupSendToUser({
+      userId: message.senderId,
+      message: {
+        roomId: message.roomId,
+        msgType: 'new-message',
+        ...{
+          msg: JSON.stringify({
+            title: '群消息',
+            roomId: message.roomId,
+            content: `收到一条来自${room.name}群消息`,
+          }),
+          type: 'server',
+        },
+      },
+    });
   }
 
   storeGroupMessage(params: {
