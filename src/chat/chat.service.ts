@@ -231,6 +231,10 @@ export class ChatService {
     return this.eventEmitter.emitAsync('socket.sendServerMessage', params);
   }
 
+  joinRoom(params: ChatSocketServiceMethodParams['joinRoom'][0]) {
+    return this.eventEmitter.emitAsync('socket.joinRoom', params);
+  }
+
   // 模拟发送群通知消息
   sendMessageToGroup(
     params: ChatSocketServiceMethodParams['sendMessageFakeUser'][0],
@@ -564,7 +568,10 @@ export class ChatService {
       }
     }
 
-    const infoUser = () => {
+    // 创建群聊频道
+    await this.joinRoom({ roomId: params.roomId, userId: params.userId });
+
+    const infoUser = async () => {
       if (!isInfo) return Promise.resolve();
       return this.sendServerMessage({
         receiverId: params.userId,

@@ -11,14 +11,12 @@ import {
 } from '../chat/entities/single-chat-msg-entity';
 import {
   ConnectedServer,
-  JoinRoom,
   SendPayloadToClient,
 } from './dto/create-chat-socket.dto';
 import { WebSocketServer } from '@nestjs/websockets';
 const userToClient = {};
 const clientToUser = {};
 const onlineSocket = new Map();
-const roomMap = new Map();
 
 @Injectable()
 export class ChatSocketService {
@@ -259,11 +257,12 @@ export class ChatSocketService {
     });
   }
 
-  joinRoom(client: Socket, data: JoinRoom) {
-    if (roomMap.has(data.roomId)) {
-      roomMap.get(data.roomId).push(client.id);
-    } else if (data.roomId) {
-      roomMap.set(data.roomId, [client.id]);
+  @OnEvent('socket.joinRoom')
+  joinRoom(params: { roomId: string; userId: string }) {
+    const { roomId, userId } = params;
+    const client = userToClient[userId];
+    if (client) {
+      client.join(roomId);
     }
   }
 

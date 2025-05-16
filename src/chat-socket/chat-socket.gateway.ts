@@ -1,4 +1,3 @@
-import { UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import {
   ConnectedSocket,
@@ -8,14 +7,9 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { SocketAuthGuard } from 'src/guards/socket.auth';
 import { WsAuthMiddleware } from 'src/middlewares/authSocket.middleware';
 import { ChatSocketService } from './chat-socket.service';
-import {
-  ConnectedServer,
-  JoinRoom,
-  SendPayload,
-} from './dto/create-chat-socket.dto';
+import { ConnectedServer, SendPayload } from './dto/create-chat-socket.dto';
 
 @WebSocketGateway(Number(process.env.SOCKET_PORT || 3210), {
   cors: {
@@ -57,16 +51,6 @@ export class ChatSocketGateway {
     return this.chatSocketService.connect(client, payload);
   }
 
-  @UseGuards(SocketAuthGuard)
-  @SubscribeMessage('join')
-  joinRoom(
-    @MessageBody() payload: JoinRoom,
-    @ConnectedSocket() client: Socket,
-  ) {
-    client.join(payload.roomId);
-    return this.chatSocketService.joinRoom(client, payload);
-  }
-
   @SubscribeMessage('findAllOnline')
   findAll() {
     return this.chatSocketService.findAllOnline();
@@ -78,7 +62,6 @@ export class ChatSocketGateway {
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      console.log('receive: ', payload);
       if (payload.type === 'person') {
         await this.chatSocketService.sendMessage({
           client,
